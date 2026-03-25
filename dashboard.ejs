@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Referee Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">⚽ Referee Portal</div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link active">Dashboard</a>
+                <a href="/profile" class="nav-link">My Profile</a>
+                <a href="/my-games" class="nav-link">My Matches</a>
+                <a href="/logout" class="nav-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <div class="welcome-banner">
+            <h1>Welcome, <%= user.name %>! 👋</h1>
+            <p>You are logged in as <strong><%= user.username %></strong></p>
+        </div>
+
+        <%- include('partials/side-menu') %>
+
+        <div class="dashboard-layout">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                <h2>📅 Next Match</h2>
+                <div class="card-content">
+                    <% if (summary.nextMatch) { %>
+                        <p><strong><%= summary.nextMatch.homeTeam %> vs <%= summary.nextMatch.awayTeam %></strong></p>
+                        <p><strong>Date:</strong> <%= summary.nextMatch.matchDate %> <%= summary.nextMatch.kickoffTime %></p>
+                        <p><strong>Venue:</strong> <%= summary.nextMatch.venue %></p>
+                        <p><strong>League:</strong> <%= summary.nextMatch.league %></p>
+                    <% } else { %>
+                        <p>No upcoming matches.</p>
+                    <% } %>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>🗓️ This Week's Fixtures</h2>
+                <div class="card-content">
+                    <p><strong>Total this week:</strong> <%= summary.weekFixtures.length %></p>
+                    <% if (summary.weekFixtures.length > 0) { %>
+                        <% summary.weekFixtures.slice(0, 3).forEach((fixture) => { %>
+                            <p><%= fixture.matchDate %> - <%= fixture.homeTeam %> vs <%= fixture.awayTeam %></p>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No fixtures this week.</p>
+                    <% } %>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>💷 Unpaid Fees</h2>
+                <div class="card-content">
+                    <p><strong>Unpaid matches:</strong> <%= summary.unpaidCount %></p>
+                    <p><strong>Total due:</strong> £<%= Number(summary.unpaidFeesTotal || 0).toFixed(2) %></p>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>📝 Reports Due</h2>
+                <div class="card-content">
+                    <p><strong>Reports outstanding:</strong> <%= summary.reportsDueCount %></p>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>📒 Recent Notes / Incidents</h2>
+                <div class="card-content">
+                    <% if (summary.recentNotes.length > 0) { %>
+                        <% summary.recentNotes.forEach((match) => { %>
+                            <p><strong><%= match.homeTeam %> vs <%= match.awayTeam %>:</strong> <%= match.personalNotes || match.incidentNotes %></p>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No recent notes or incidents.</p>
+                    <% } %>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>📋 Your Profile</h2>
+                <div class="card-content">
+                    <p><strong>Name:</strong> <%= user.name %></p>
+                    <p><strong>Username:</strong> <%= user.username %></p>
+                    <p><strong>Email:</strong> <%= user.email %></p>
+                    <p><strong>Experience:</strong> <%= user.experience %></p>
+                    <a href="/profile" class="btn-secondary">Edit Profile</a>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/side-menu.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Referees - Referee Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">⚽ Referee Portal</div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/referees" class="nav-link active">All Referees</a>
+                <a href="/profile" class="nav-link">My Profile</a>
+                <a href="/my-games" class="nav-link">My Games</a>
+                <a href="/logout" class="nav-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <%- include('partials/side-menu') %>
+
+        <div class="referees-container">
+            <div class="referees-header">
+                <h1>👥 All Referees</h1>
+                <p>Total: <strong><%= allReferees.length %></strong> referees</p>
+            </div>
+
+            <div class="referees-grid">
+                <% allReferees.forEach((referee) => { %>
+                    <div class="referee-card">
+                        <div class="referee-avatar"><%= referee.name.charAt(0) %></div>
+                        <h3><%= referee.name %></h3>
+                        <p class="referee-username">@<%= referee.username %></p>
+                        <div class="referee-details">
+                            <p><strong>Email:</strong> <%= referee.email %></p>
+                            <p><strong>Experience:</strong> <%= referee.experience %></p>
+                        </div>
+                        <% if (referee.id === currentUser.id) { %>
+                            <span class="badge-current">Current User</span>
+                        <% } %>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/side-menu.js"></script>
+</body>
+</html>

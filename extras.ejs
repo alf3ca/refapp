@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Useful Extras</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><div class="container"><nav class="navbar"><div class="nav-brand">⚽ Referee Portal</div><div class="nav-menu"><a href="/dashboard" class="nav-link">Dashboard</a><a href="/extras" class="nav-link active">Extras</a><a href="/logout" class="nav-link logout">Logout</a></div></nav>
+<%- include('partials/side-menu') %>
+<div class="profile-container" style="max-width:900px;"><h1>🧰 Useful Extras</h1>
+<div class="profile-card" style="margin-bottom:20px;"><div class="profile-form"><div class="form-section"><h3>Mileage Calculator</h3>
+<div class="form-group"><label>Miles</label><input id="miles" type="number" min="0" step="0.1"></div>
+<div class="form-group"><label>Rate per mile (£)</label><input id="rate" type="number" min="0" step="0.01" value="0.45"></div>
+<p><strong>Total:</strong> £<span id="mileageTotal">0.00</span></p>
+<h3 style="margin-top:16px;">Quick Links</h3>
+<p><a href="https://www.bbc.co.uk/weather" target="_blank" rel="noopener noreferrer">Weather</a></p>
+<p><a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Sat-nav</a></p>
+<p><strong>Coin toss / notebook template:</strong> Heads/Tails, kick-off, captains, key incidents, cautions, dismissals.</p>
+</div></div></div>
+
+<div class="profile-card" style="margin-bottom:20px;"><form id="checklistForm" class="profile-form"><div class="form-section"><h3>Pre-match & Packing Checklists</h3>
+<div class="form-group"><label>Checklist Type</label><select id="listType"><option value="preMatchChecklist">Pre-match</option><option value="packingChecklist">Packing</option></select></div>
+<div class="form-group"><label>Item</label><input id="checkItem"></div>
+<% if (preMatchChecklist.length) { %><p><strong>Pre-match:</strong></p><% preMatchChecklist.forEach((i)=>{ %><p>- <%= i.item %></p><% }) %><% } %>
+<% if (packingChecklist.length) { %><p><strong>Packing:</strong></p><% packingChecklist.forEach((i)=>{ %><p>- <%= i.item %></p><% }) %><% } %>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Add Checklist Item</button></div></form><div id="checkMsg" style="display:none; margin:0 30px 20px;"></div></div>
+
+<div class="profile-card"><form id="kitForm" class="profile-form"><div class="form-section"><h3>Whistle / Kit Inventory</h3>
+<div class="form-group"><label>Item</label><input id="kitItem"></div>
+<div class="form-group"><label>Quantity</label><input id="kitQty" type="number" min="1" value="1"></div>
+<div class="form-group"><label>Notes</label><input id="kitNotes"></div>
+<% if (!kitInventory.length) { %><p>No kit inventory yet.</p><% } %>
+<% kitInventory.forEach((k)=>{ %><p><strong><%= k.item %></strong> x <%= k.quantity %> <%= k.notes ? ('- ' + k.notes) : '' %></p><% }) %>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Add Kit Item</button></div></form><div id="kitMsg" style="display:none; margin:0 30px 20px;"></div></div>
+</div></div>
+<script src="/static/side-menu.js"></script>
+<script>
+function recalc(){ const milesVal=Number(document.getElementById('miles').value||0); const rateVal=Number(document.getElementById('rate').value||0); document.getElementById('mileageTotal').textContent=(milesVal*rateVal).toFixed(2); }
+document.getElementById('miles').addEventListener('input', recalc); document.getElementById('rate').addEventListener('input', recalc);
+checklistForm.addEventListener('submit', async (e)=>{e.preventDefault(); const payload={listType:listType.value,item:checkItem.value.trim()}; const res=await fetch('/api/extras/checklist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const b=await res.json(); checkMsg.style.display='block'; checkMsg.className=res.ok?'success-message':'error-message'; checkMsg.textContent=res.ok?'Saved. Reloading...':(b.error||'Error'); if(res.ok) setTimeout(()=>location.reload(),400);});
+kitForm.addEventListener('submit', async (e)=>{e.preventDefault(); const payload={item:kitItem.value.trim(),quantity:kitQty.value,notes:kitNotes.value.trim()}; const res=await fetch('/api/extras/kit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const b=await res.json(); kitMsg.style.display='block'; kitMsg.className=res.ok?'success-message':'error-message'; kitMsg.textContent=res.ok?'Saved. Reloading...':(b.error||'Error'); if(res.ok) setTimeout(()=>location.reload(),400);});
+</script></body></html>

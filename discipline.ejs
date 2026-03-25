@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Discipline Log</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><div class="container">
+<nav class="navbar"><div class="nav-brand">⚽ Referee Portal</div><div class="nav-menu"><a href="/dashboard" class="nav-link">Dashboard</a><a href="/discipline" class="nav-link active">Discipline</a><a href="/logout" class="nav-link logout">Logout</a></div></nav>
+<%- include('partials/side-menu') %>
+<div class="profile-container" style="max-width:900px;"><h1>🟥 Discipline Log</h1>
+<div class="profile-card" style="margin-bottom:20px;"><form id="disciplineForm" class="profile-form"><div class="form-section"><h3>Add Entry</h3>
+<div class="form-group"><label>Card Type</label><select id="cardType" required><option value="">Select</option><option>Yellow Card</option><option>Red Card</option></select></div>
+<div class="form-group"><label>Player Name</label><input id="playerName" required></div>
+<div class="form-group"><label>Team Name</label><input id="teamName" required></div>
+<div class="form-group"><label>Minute</label><input id="minute" type="number" min="0" required></div>
+<div class="form-group"><label>Offence</label><input id="offence" required></div>
+<div class="form-group"><label>Competition</label><input id="competition" required></div>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Save Entry</button></div></form><div id="disciplineMsg" style="display:none; margin: 0 30px 20px;"></div></div>
+<div class="profile-card"><div class="profile-form"><div class="form-section"><h3>Search</h3><form method="GET" action="/discipline"><div class="form-group"><input name="q" value="<%= query %>" placeholder="Search discipline entries"></div><button class="btn-secondary" type="submit">Search</button></form><h3 style="margin-top:16px;">Entries</h3>
+<% if (!entries.length) { %><p>No entries found.</p><% } %>
+<% entries.forEach((entry) => { %><p><strong><%= entry.cardType %></strong> — <%= entry.playerName %> (<%= entry.teamName %>) minute <%= entry.minute %>, <%= entry.offence %>, <%= entry.competition %></p><% }) %>
+</div></div></div>
+</div></div>
+<script src="/static/side-menu.js"></script>
+<script>
+document.getElementById('disciplineForm').addEventListener('submit', async (e)=>{e.preventDefault(); const payload={cardType:cardType.value,playerName:playerName.value.trim(),teamName:teamName.value.trim(),minute:minute.value,offence:offence.value.trim(),competition:competition.value.trim()}; const res=await fetch('/api/discipline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const body=await res.json(); const msg=document.getElementById('disciplineMsg'); msg.style.display='block'; msg.className=res.ok?'success-message':'error-message'; msg.textContent=res.ok?'Saved. Reloading...':(body.error||'Error'); if(res.ok) setTimeout(()=>location.reload(),400);});
+</script></body></html>

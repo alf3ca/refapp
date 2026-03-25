@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Performance Tracking</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><div class="container">
+<nav class="navbar"><div class="nav-brand">⚽ Referee Portal</div><div class="nav-menu"><a href="/dashboard" class="nav-link">Dashboard</a><a href="/performance" class="nav-link active">Performance</a><a href="/logout" class="nav-link logout">Logout</a></div></nav>
+<%- include('partials/side-menu') %>
+<div class="profile-container" style="max-width:1000px;"><h1>📈 Performance Tracking</h1>
+<div class="profile-card" style="margin-bottom:20px;"><div class="profile-form"><div class="form-section">
+<h3>Counts</h3>
+<p><strong>Cautions per game:</strong> <%= metrics.cautionsPerGame.toFixed(2) %></p>
+<p><strong>Dismissals per game:</strong> <%= metrics.dismissalsPerGame.toFixed(2) %></p>
+<p><strong>Cancellations:</strong> <%= metrics.cancellations %></p>
+<h3>By Role</h3>
+<% Object.entries(metrics.byRole).forEach(([k,v])=>{ %><p><strong><%= k %></strong>: <%= v %></p><% }) %>
+<h3>By Age Group</h3>
+<% Object.entries(metrics.byAge).forEach(([k,v])=>{ %><p><strong><%= k %></strong>: <%= v %></p><% }) %>
+<h3>By Competition</h3>
+<% Object.entries(metrics.byCompetition).forEach(([k,v])=>{ %><p><strong><%= k %></strong>: <%= v %></p><% }) %>
+</div></div></div>
+<div class="profile-card" style="margin-bottom:20px;"><form id="assessmentForm" class="profile-form"><div class="form-section"><h3>Observer Marks / Self-Ratings</h3>
+<div class="form-group"><label>Match</label><select id="matchId" required><option value="">Select match</option><% matches.forEach((m)=>{ %><option value="<%= m.id %>"><%= m.homeTeam %> vs <%= m.awayTeam %> (#<%= m.id %>)</option><% }) %></select></div>
+<div class="form-group"><label>Observer Mark</label><input id="observerMark" type="number" min="0" max="100" step="0.1" required></div>
+<div class="form-group"><label>Self Rating</label><input id="selfRating" type="number" min="0" max="10" step="0.1" required></div>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Save Assessment</button></div></form><div id="assessmentMsg" style="display:none; margin: 0 30px 20px;"></div></div>
+<div class="profile-card"><form id="targetForm" class="profile-form"><div class="form-section"><h3>Promotion Targets</h3>
+<div class="form-group"><label>Target</label><input id="targetTitle" required></div>
+<div class="form-group"><label>Details</label><textarea id="targetDetails" rows="3"></textarea></div>
+<% if (!targets.length) { %><p>No targets yet.</p><% } %>
+<% targets.forEach((t)=>{ %><p><strong><%= t.title %></strong> — <%= t.details %></p><% }) %>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Add Target</button></div></form><div id="targetMsg" style="display:none; margin: 0 30px 20px;"></div></div>
+</div></div>
+<script src="/static/side-menu.js"></script>
+<script>
+assessmentForm.addEventListener('submit', async (e)=>{e.preventDefault(); const payload={matchId:matchId.value,observerMark:observerMark.value,selfRating:selfRating.value}; const res=await fetch('/api/performance/assessment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const b=await res.json(); assessmentMsg.style.display='block'; assessmentMsg.className=res.ok?'success-message':'error-message'; assessmentMsg.textContent=res.ok?'Saved.':(b.error||'Error');});
+targetForm.addEventListener('submit', async (e)=>{e.preventDefault(); const payload={title:targetTitle.value.trim(),details:targetDetails.value.trim()}; const res=await fetch('/api/performance/targets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const b=await res.json(); targetMsg.style.display='block'; targetMsg.className=res.ok?'success-message':'error-message'; targetMsg.textContent=res.ok?'Saved. Reloading...':(b.error||'Error'); if(res.ok) setTimeout(()=>location.reload(),400);});
+</script>
+</body></html>

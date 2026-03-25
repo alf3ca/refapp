@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Report - Referee Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar">
+      <div class="nav-brand">⚽ Referee Portal</div>
+      <div class="nav-menu">
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/my-games" class="nav-link">My Matches</a>
+        <a href="/reports" class="nav-link">All Reports</a>
+        <a href="/logout" class="nav-link logout">Logout</a>
+      </div>
+    </nav>
+
+    <%- include('partials/side-menu') %>
+
+    <div class="profile-container">
+      <h1>📝 Create Report</h1>
+      <div class="profile-card">
+        <form id="reportForm" class="profile-form">
+          <div class="form-section">
+            <div class="form-group">
+              <label for="matchId">Match</label>
+              <select id="matchId" required>
+                <option value="">Select Match</option>
+                <% myMatches.forEach((match) => { %>
+                  <option value="<%= match.id %>"><%= match.matchDate || '-' %> <%= match.homeTeam %> vs <%= match.awayTeam %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="reportType">Report Type</label>
+              <select id="reportType" required>
+                <option value="">Select Type</option>
+                <option value="normal">Normal Match Summary</option>
+                <option value="caution-send-off">Caution / Send-off Notes</option>
+                <option value="serious-incident">Serious Incident</option>
+                <option value="abandonment">Abandonment</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <button type="button" class="btn-secondary" id="useTemplateBtn" style="margin-top:0;">Use Template</button>
+              <button type="button" class="btn-secondary" id="copyPreviousBtn" style="margin-top:0;">Copy Previous Format</button>
+            </div>
+
+            <div class="form-group">
+              <label for="content">Report Content</label>
+              <textarea id="content" rows="8" required placeholder="Write report..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="isDraft" />
+                Save as draft
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Report</button>
+            <a href="/dashboard" class="btn-secondary">Back to Dashboard</a>
+          </div>
+        </form>
+
+        <div id="reportMessage" style="display:none; margin: 0 30px 20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/side-menu.js"></script>
+  <script>
+    const reportForm = document.getElementById('reportForm');
+    const reportMessage = document.getElementById('reportMessage');
+    const useTemplateBtn = document.getElementById('useTemplateBtn');
+    const copyPreviousBtn = document.getElementById('copyPreviousBtn');
+
+    const templates = {
+      'normal': 'Match Summary:\n- Overall flow of the match\n- Key decisions\n- Team conduct\n- Final score and notable events',
+      'caution-send-off': 'Caution / Send-off Notes:\n- Player name and team\n- Minute\n- Offence\n- Action taken\n- Restart and any follow-up',
+      'serious-incident': 'Serious Incident Notes:\n- Incident summary\n- People involved\n- Actions taken\n- Match impact\n- Further reporting completed',
+      'abandonment': 'Abandonment Notes:\n- Reason for abandonment\n- Match time at abandonment\n- Score at time\n- Conditions and safety factors\n- Communication and next steps'
+    };
+
+    useTemplateBtn.addEventListener('click', () => {
+      const type = document.getElementById('reportType').value;
+      if (!type || !templates[type]) {
+        reportMessage.className = 'error-message';
+        reportMessage.textContent = 'Select a report type first';
+        reportMessage.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('content').value = templates[type];
+    });
+
+    copyPreviousBtn.addEventListener('click', async () => {
+      const type = document.getElementById('reportType').value;
+      if (!type) {
+        reportMessage.className = 'error-message';
+        reportMessage.textContent = 'Select a report type first';
+        reportMessage.style.display = 'block';
+        return;
+      }
+
+      const response = await fetch(`/api/reports/previous?reportType=${encodeURIComponent(type)}`);
+      const body = await response.json();
+      if (!response.ok) {
+        reportMessage.className = 'error-message';
+        reportMessage.textContent = body.error || 'Could not load previous format';
+        reportMessage.style.display = 'block';
+        return;
+      }
+
+      if (!body.content) {
+        reportMessage.className = 'error-message';
+        reportMessage.textContent = 'No previous report found for this type';
+        reportMessage.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('content').value = body.content;
+      reportMessage.className = 'success-message';
+      reportMessage.textContent = 'Previous format loaded';
+      reportMessage.style.display = 'block';
+    });
+
+    reportForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const payload = {
+        matchId: document.getElementById('matchId').value,
+        reportType: document.getElementById('reportType').value,
+        content: document.getElementById('content').value.trim(),
+        isDraft: document.getElementById('isDraft').checked
+      };
+
+      try {
+        const response = await fetch('/api/reports', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const body = await response.json();
+        if (!response.ok) {
+          reportMessage.className = 'error-message';
+          reportMessage.textContent = body.error || 'Could not save report';
+          reportMessage.style.display = 'block';
+          return;
+        }
+
+        reportMessage.className = 'success-message';
+        reportMessage.textContent = payload.isDraft ? 'Draft saved successfully.' : 'Report saved successfully.';
+        reportMessage.style.display = 'block';
+        reportForm.reset();
+      } catch (error) {
+        reportMessage.className = 'error-message';
+        reportMessage.textContent = 'An error occurred while saving report';
+        reportMessage.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

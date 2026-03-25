@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Matches - Referee Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">⚽ Referee Portal</div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/profile" class="nav-link">My Profile</a>
+                <a href="/my-games" class="nav-link active">My Matches</a>
+                <a href="/logout" class="nav-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <%- include('partials/side-menu') %>
+
+        <div class="profile-container">
+            <h1 id="add-match">🗂️ My Matches</h1>
+
+            <div class="profile-card" style="margin-bottom: 20px;">
+                <form id="addGameForm" class="profile-form">
+                    <div class="form-section">
+                        <h3>Add Match</h3>
+
+                        <div class="form-group">
+                            <label for="matchDate">Date</label>
+                            <input type="date" id="matchDate" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="kickoffTime">Kickoff Time</label>
+                            <input type="time" id="kickoffTime" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="leagueInput">League</label>
+                            <input type="text" id="leagueInput" list="leagueOptions" placeholder="Enter league" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="homeTeamInput">Home Team</label>
+                            <input type="text" id="homeTeamInput" list="teamOptions" placeholder="Enter home team" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="awayTeamInput">Away Team</label>
+                            <input type="text" id="awayTeamInput" list="teamOptions" placeholder="Enter away team" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="venueSelect">Venue</label>
+                            <select id="venueSelect" required>
+                                <option value="">Select Venue</option>
+                                <% venues.forEach((venue) => { %>
+                                    <option value="<%= venue %>"><%= venue %></option>
+                                <% }) %>
+                                <option value="__new__">+ Add New Venue</option>
+                            </select>
+                            <input type="text" id="venueNew" placeholder="Enter new venue" style="display:none; margin-top:8px;" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ageGroup">Age Group</label>
+                            <select id="ageGroup" required>
+                                <option value="">Select Age Group</option>
+                                <% ageGroups.forEach((group) => { %>
+                                    <option value="<%= group %>"><%= group %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role">Role</label>
+                            <select id="role" required>
+                                <option value="">Select Role</option>
+                                <% matchRoles.forEach((item) => { %>
+                                    <option value="<%= item %>"><%= item %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status" required>
+                                <option value="">Select Status</option>
+                                <% matchStatuses.forEach((item) => { %>
+                                    <option value="<%= item %>"><%= item.charAt(0).toUpperCase() + item.slice(1) %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="travelTimeMinutes">Travel Time (minutes)</label>
+                            <input type="number" id="travelTimeMinutes" min="0" step="1" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="travelDistanceMiles">Travel Distance (miles)</label>
+                            <input type="number" id="travelDistanceMiles" min="0" step="0.1" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="matchFee">Match Fee (£)</label>
+                            <input type="number" id="matchFee" min="0" step="0.01" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="personalNotes">Personal Notes</label>
+                            <textarea id="personalNotes" rows="3" placeholder="Add notes for this fixture"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="incidentNotes">Incident Notes</label>
+                            <textarea id="incidentNotes" rows="3" placeholder="Add incidents or key moments"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="attachments">Attachments</label>
+                            <input type="file" id="attachments" multiple />
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" id="feePaid" />
+                                Fee Paid
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" id="reportSubmitted" />
+                                Report Submitted
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Add Match</button>
+                        <a href="/dashboard" class="btn-secondary">Back to Dashboard</a>
+                    </div>
+                </form>
+
+                <div id="gameMessage" style="display:none; margin: 0 30px 20px;"></div>
+            </div>
+
+            <div class="profile-card">
+                <div class="profile-form">
+                    <div class="form-section">
+                        <h3>All My Matches</h3>
+                        <% if (!myGames || myGames.length === 0) { %>
+                            <p>No matches added yet.</p>
+                        <% } else { %>
+                            <div class="games-list">
+                                <% myGames.forEach((game) => { %>
+                                    <div class="game-row">
+                                        <div class="game-main"><strong><%= game.homeTeam %> vs <%= game.awayTeam %></strong></div>
+                                        <div class="game-meta"><strong>Date:</strong> <%= game.matchDate || '-' %> <%= game.kickoffTime || '' %></div>
+                                        <div class="game-meta"><strong>League:</strong> <%= game.league || '-' %></div>
+                                        <div class="game-meta"><strong>Venue:</strong> <%= game.venue %></div>
+                                        <div class="game-meta"><strong>Age Group:</strong> <%= game.ageGroup %></div>
+                                        <div class="game-meta"><strong>Role:</strong> <%= game.role || '-' %></div>
+                                        <div class="game-meta"><strong>Status:</strong> <%= game.status || '-' %></div>
+                                        <div class="game-meta"><strong>Travel:</strong> <%= game.travelTimeMinutes ?? '-' %> min, <%= game.travelDistanceMiles ?? '-' %> miles</div>
+                                        <div class="game-meta"><strong>Fee:</strong> £<%= Number(game.matchFee || 0).toFixed(2) %> (<%= game.feePaid ? 'Paid' : 'Unpaid' %>)</div>
+                                        <div class="game-meta"><strong>Report:</strong> <%= game.reportSubmitted ? 'Submitted' : 'Due' %></div>
+                                        <div class="game-meta"><strong>Notes:</strong> <%= game.personalNotes || '-' %></div>
+                                        <div class="game-meta"><strong>Incidents:</strong> <%= game.incidentNotes || '-' %></div>
+                                        <div class="game-meta">
+                                            <strong>Attachments:</strong>
+                                            <% if (game.attachments && game.attachments.length > 0) { %>
+                                                <% game.attachments.forEach((file, index) => { %>
+                                                    <a href="<%= file.path %>" target="_blank" rel="noopener noreferrer"><%= file.originalName || `Attachment ${index + 1}` %></a><%= index < game.attachments.length - 1 ? ', ' : '' %>
+                                                <% }) %>
+                                            <% } else { %>
+                                                -
+                                            <% } %>
+                                        </div>
+                                        <div class="game-meta"><strong>Created:</strong> <%= new Date(game.createdAt).toLocaleString() %></div>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <datalist id="teamOptions">
+        <% teams.forEach((team) => { %>
+            <option value="<%= team %>"></option>
+        <% }) %>
+    </datalist>
+
+    <datalist id="leagueOptions">
+        <% leagues.forEach((league) => { %>
+            <option value="<%= league %>"></option>
+        <% }) %>
+    </datalist>
+
+    <script src="/static/side-menu.js"></script>
+    <script>
+        const homeTeamInput = document.getElementById('homeTeamInput');
+        const awayTeamInput = document.getElementById('awayTeamInput');
+        const leagueInput = document.getElementById('leagueInput');
+        const venueSelect = document.getElementById('venueSelect');
+
+        const venueNew = document.getElementById('venueNew');
+
+        const addGameForm = document.getElementById('addGameForm');
+        const gameMessage = document.getElementById('gameMessage');
+
+        function toggleNewInput(selectElement, inputElement) {
+            if (selectElement.value === '__new__') {
+                inputElement.style.display = 'block';
+                inputElement.required = true;
+                return;
+            }
+
+            inputElement.style.display = 'none';
+            inputElement.required = false;
+            inputElement.value = '';
+        }
+
+        venueSelect.addEventListener('change', () => toggleNewInput(venueSelect, venueNew));
+
+        addGameForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append('matchDate', document.getElementById('matchDate').value);
+            formData.append('kickoffTime', document.getElementById('kickoffTime').value);
+            formData.append('league', leagueInput.value.trim());
+            formData.append('homeTeam', homeTeamInput.value.trim());
+            formData.append('awayTeam', awayTeamInput.value.trim());
+            formData.append('venue', venueSelect.value === '__new__' ? venueNew.value.trim() : venueSelect.value);
+            formData.append('ageGroup', document.getElementById('ageGroup').value);
+            formData.append('role', document.getElementById('role').value);
+            formData.append('status', document.getElementById('status').value);
+            formData.append('travelTimeMinutes', document.getElementById('travelTimeMinutes').value);
+            formData.append('travelDistanceMiles', document.getElementById('travelDistanceMiles').value);
+            formData.append('matchFee', document.getElementById('matchFee').value);
+            formData.append('feePaid', document.getElementById('feePaid').checked ? 'true' : 'false');
+            formData.append('reportSubmitted', document.getElementById('reportSubmitted').checked ? 'true' : 'false');
+            formData.append('personalNotes', document.getElementById('personalNotes').value.trim());
+            formData.append('incidentNotes', document.getElementById('incidentNotes').value.trim());
+
+            const attachmentFiles = document.getElementById('attachments').files;
+            for (const file of attachmentFiles) {
+                formData.append('attachments', file);
+            }
+
+            try {
+                const response = await fetch('/api/matches', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    gameMessage.className = 'success-message';
+                    gameMessage.textContent = 'Match added successfully. Reloading list...';
+                    gameMessage.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                    return;
+                }
+
+                const body = await response.json();
+                gameMessage.className = 'error-message';
+                gameMessage.textContent = body.error || 'Could not add game';
+                gameMessage.style.display = 'block';
+            } catch (error) {
+                gameMessage.className = 'error-message';
+                gameMessage.textContent = 'An error occurred while adding the game';
+                gameMessage.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

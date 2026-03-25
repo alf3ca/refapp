@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Fitness & Development</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><div class="container"><nav class="navbar"><div class="nav-brand">⚽ Referee Portal</div><div class="nav-menu"><a href="/dashboard" class="nav-link">Dashboard</a><a href="/fitness" class="nav-link active">Fitness</a><a href="/logout" class="nav-link logout">Logout</a></div></nav>
+<%- include('partials/side-menu') %>
+<div class="profile-container" style="max-width:900px;"><h1>🏃 Fitness and Development</h1>
+<div class="profile-card" style="margin-bottom:20px;"><form id="fitnessForm" class="profile-form"><div class="form-section"><h3>Add Entry</h3>
+<div class="form-group"><label>Type</label><select id="entryType" required><option value="">Select</option><option>Training Log</option><option>Injury</option><option>Sprint / Fitness Test</option><option>Course Attended</option><option>CPD Notes</option><option>Assessment Feedback</option></select></div>
+<div class="form-group"><label>Date</label><input id="entryDate" type="date" required></div>
+<div class="form-group"><label>Title</label><input id="title" required></div>
+<div class="form-group"><label>Details</label><textarea id="details" rows="4"></textarea></div>
+</div><div class="form-actions"><button class="btn-primary" type="submit">Save Entry</button></div></form><div id="fitnessMsg" style="display:none; margin:0 30px 20px;"></div></div>
+<div class="profile-card"><div class="profile-form"><div class="form-section"><h3>Saved Entries</h3>
+<% if (!entries.length) { %><p>No fitness/development entries yet.</p><% } %>
+<% entries.forEach((e)=>{ %><p><strong><%= e.entryDate %></strong> — <%= e.entryType %> — <%= e.title %> <%= e.details ? ('- ' + e.details) : '' %></p><% }) %>
+</div></div></div>
+</div></div>
+<script src="/static/side-menu.js"></script>
+<script>
+fitnessForm.addEventListener('submit', async (e)=>{e.preventDefault(); const payload={entryType:entryType.value,entryDate:entryDate.value,title:title.value.trim(),details:details.value.trim()}; const res=await fetch('/api/fitness',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const b=await res.json(); fitnessMsg.style.display='block'; fitnessMsg.className=res.ok?'success-message':'error-message'; fitnessMsg.textContent=res.ok?'Saved. Reloading...':(b.error||'Error'); if(res.ok) setTimeout(()=>location.reload(),400);});
+</script></body></html>
