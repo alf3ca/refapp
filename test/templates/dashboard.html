@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Referee Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">⚽ Referee Portal</div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a>
+                <a href="{{ url_for('referees_list') }}" class="nav-link">All Referees</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">My Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link logout">Logout</a>
+            </div>
+        </nav>
+        
+        <div class="welcome-banner">
+            <h1>Welcome, {{ user.name }}! 👋</h1>
+            <p>You are logged in as <strong>{{ user.username }}</strong></p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h2>📋 Your Profile</h2>
+                <div class="card-content">
+                    <p><strong>Name:</strong> {{ user.name }}</p>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Experience:</strong> {{ user.experience }}</p>
+                    <a href="{{ url_for('profile') }}" class="btn-secondary">Edit Profile</a>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <h2>👥 Referees Directory</h2>
+                <div class="card-content">
+                    <p>Total Referees: <strong>{{ all_users|length }}</strong></p>
+                    <p>View and manage all referees in the system.</p>
+                    <a href="{{ url_for('referees_list') }}" class="btn-secondary">View All</a>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <h2>📊 Quick Stats</h2>
+                <div class="card-content">
+                    <p><strong>Active Sessions:</strong> 1</p>
+                    <p><strong>Account Type:</strong> Referee</p>
+                    <p><strong>Last Login:</strong> Just now</p>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <h2>ℹ️ System Info</h2>
+                <div class="card-content">
+                    <p><strong>Portal Version:</strong> 1.0</p>
+                    <p><strong>Status:</strong> <span class="status-online">● Online</span></p>
+                    <p>System running smoothly</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
