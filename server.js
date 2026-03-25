@@ -6,7 +6,7 @@ const multer = require('multer');
 const PDFDocument = require('pdfkit');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
 const GAMES_FILE = path.join(__dirname, 'games.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -1149,6 +1149,6 @@ app.get('/logout', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Referee portal running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on ${PORT}`);
 });

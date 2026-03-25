@@ -11,12 +11,14 @@
     sidebar.classList.add('hidden');
     toggleBtn.classList.add('active');
     overlay.classList.remove('visible');
+    toggleBtn.setAttribute('aria-expanded', 'false');
   }
 
   function openSidebar() {
     sidebar.classList.remove('hidden');
     toggleBtn.classList.remove('active');
     overlay.classList.add('visible');
+    toggleBtn.setAttribute('aria-expanded', 'true');
   }
 
   function toggleSidebar() {
@@ -32,6 +34,12 @@
 
   overlay.addEventListener('click', () => {
     if (!sidebar.classList.contains('hidden')) {
+      closeSidebar();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !sidebar.classList.contains('hidden')) {
       closeSidebar();
     }
   });

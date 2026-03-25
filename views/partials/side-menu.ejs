@@ -1,21 +1,36 @@
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="quickLinksSidebar">
     <span></span>
     <span></span>
     <span></span>
 </button>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="quick-links-sidebar hidden" id="quickLinksSidebar">
-    <h2>⚡ Quick Links</h2>
-    <a href="/my-games#add-match" class="btn-primary sidebar-link">Create Match</a>
-    <a href="/expenses/new" class="btn-secondary sidebar-link">Create Expense</a>
-    <a href="/reports/new" class="btn-secondary sidebar-link">Create Report</a>
-    <a href="/availability" class="btn-secondary sidebar-link">Availability</a>
-    <a href="/discipline" class="btn-secondary sidebar-link">Discipline</a>
-    <a href="/payments" class="btn-secondary sidebar-link">Payments</a>
-    <a href="/performance" class="btn-secondary sidebar-link">Performance</a>
-    <a href="/reflections" class="btn-secondary sidebar-link">Reflections</a>
-    <a href="/documents" class="btn-secondary sidebar-link">Documents</a>
-    <a href="/fitness" class="btn-secondary sidebar-link">Fitness</a>
-    <a href="/contacts" class="btn-secondary sidebar-link">Contacts</a>
-    <a href="/extras" class="btn-secondary sidebar-link">Useful Extras</a>
+    <div class="sidebar-menu-header">
+        <h2>⚡ Quick Links</h2>
+        <p>Referee Portal Menu</p>
+    </div>
+
+    <div class="sidebar-menu-section">
+        <h3>Create</h3>
+        <a href="/my-games#add-match" class="sidebar-link sidebar-link-action">Create Match</a>
+        <a href="/expenses/new" class="sidebar-link sidebar-link-action">Create Expense</a>
+        <a href="/reports/new" class="sidebar-link sidebar-link-action">Create Report</a>
+    </div>
+
+    <div class="sidebar-menu-section">
+        <h3>Manage</h3>
+        <a href="/availability" class="sidebar-link sidebar-link-manage">Availability</a>
+        <a href="/payments" class="sidebar-link sidebar-link-manage">Payments</a>
+        <a href="/performance" class="sidebar-link sidebar-link-manage">Performance</a>
+        <a href="/discipline" class="sidebar-link sidebar-link-manage">Discipline</a>
+        <a href="/reflections" class="sidebar-link sidebar-link-manage">Reflections</a>
+    </div>
+
+    <div class="sidebar-menu-section">
+        <h3>Records</h3>
+        <a href="/documents" class="sidebar-link sidebar-link-records">Documents</a>
+        <a href="/fitness" class="sidebar-link sidebar-link-records">Fitness</a>
+        <a href="/contacts" class="sidebar-link sidebar-link-records">Contacts</a>
+        <a href="/extras" class="sidebar-link sidebar-link-records">Useful Extras</a>
+    </div>
 </aside>
