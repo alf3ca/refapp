@@ -250,7 +250,7 @@ body {
     top: 70px;
     width: 260px;
     height: calc(100vh - 70px);
-    z-index: 999;
+    z-index: 1200;
     overflow-y: auto;
     transform: translateX(0);
     transition: transform 0.3s ease;
@@ -340,7 +340,7 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
-    z-index: 1001;
+    z-index: 1300;
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -386,7 +386,7 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 998;
+    z-index: 1150;
 }
 
 .sidebar-overlay.visible {
