@@ -1,0 +1,20 @@
+{
+  "referees": [
+    {
+      "id": 1,
+      "username": "test",
+      "password": "test",
+      "email": "test@test.com",
+      "name": "test",
+      "experience": "test"
+    },
+    {
+      "id": 2,
+      "username": "alf3ca",
+      "password": "test",
+      "email": "alejfc09@outlook.com",
+      "name": "Alejandro",
+      "experience": "3 years"
+    }
+  ]
+}

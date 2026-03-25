@@ -1,0 +1,5 @@
+
+> referee-portal@1.0.0 start
+> node server.js
+
+Referee portal running at http://localhost:5000
