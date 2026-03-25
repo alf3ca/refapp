@@ -146,7 +146,7 @@ body {
 
 /* ===== NAVBAR ===== */
 .navbar {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
     border-bottom: 1px solid var(--border-color);
     padding: 0 20px;
     display: flex;
@@ -154,6 +154,12 @@ body {
     align-items: center;
     height: 70px;
     box-shadow: var(--shadow);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100;
+    backdrop-filter: blur(8px);
 }
 
 .nav-brand {
@@ -197,6 +203,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    padding-top: 90px;
 }
 
 /* ===== WELCOME BANNER ===== */
@@ -377,10 +384,7 @@ body {
 .sidebar-overlay {
     display: none;
     position: fixed;
-    top: 70px;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 70px);
+    inset: 0;
     background: rgba(0, 0, 0, 0.3);
     z-index: 998;
 }
