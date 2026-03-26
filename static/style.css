@@ -24,6 +24,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-dark);
     line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== LOGIN PAGE ===== */
@@ -33,12 +35,12 @@ body {
     align-items: center;
     min-height: 100vh;
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    padding: 20px;
+    padding: 16px;
 }
 
 .login-box {
     background: var(--card-bg);
-    padding: 40px;
+    padding: 32px 24px;
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
     width: 100%;
@@ -88,7 +90,7 @@ body {
 
 .btn-login {
     width: 100%;
-    padding: 12px;
+    padding: 14px 16px;
     background: var(--primary-color);
     color: white;
     border: none;
@@ -98,6 +100,10 @@ body {
     cursor: pointer;
     transition: background-color 0.3s;
     margin-top: 10px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-login:hover {
@@ -214,7 +220,7 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px;
     padding-top: 90px;
 }
 
@@ -346,8 +352,8 @@ body {
     position: fixed;
     top: 15px;
     left: 20px;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -360,6 +366,9 @@ body {
     align-items: center;
     gap: 5px;
     transition: all 0.3s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .sidebar-toggle span {
@@ -447,16 +456,20 @@ body {
 .btn-primary,
 .btn-secondary {
     display: inline-block;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     border: none;
     transition: all 0.3s;
     margin-top: 15px;
     margin-right: 10px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-primary {
@@ -482,8 +495,9 @@ body {
 
 /* ===== PROFILE PAGE ===== */
 .profile-container {
-    max-width: 600px;
-    margin: 30px auto;
+    max-width: 700px;
+    margin: 24px auto;
+    padding: 0 12px;
 }
 
 .profile-container h1 {
@@ -572,8 +586,10 @@ body {
     border-radius: 10px;
     background-color: var(--card-bg);
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 16px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .form-group textarea {
@@ -584,9 +600,10 @@ body {
     border-radius: 10px;
     background-color: var(--card-bg);
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 16px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     resize: vertical;
+    font-family: inherit;
 }
 
 .form-group input::placeholder {
@@ -759,71 +776,87 @@ body {
 }
 
 /* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .profile-container {
+        margin: 20px 15px;
+    }
+}
+
 @media (max-width: 768px) {
     .navbar {
         flex-wrap: wrap;
         height: auto;
-        padding: 15px;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .nav-brand {
+        font-size: 20px;
+        flex: 1;
     }
     
     .nav-menu {
         width: 100%;
         flex-wrap: wrap;
-        margin-top: 15px;
-        gap: 10px;
+        margin-top: 10px;
+        gap: 8px;
+    }
+    
+    .nav-link {
+        padding: 8px 12px;
+        font-size: 14px;
     }
     
     .login-box {
-        padding: 30px 20px;
+        padding: 28px 20px;
     }
     
     .welcome-banner {
-        padding: 25px;
+        padding: 20px 16px;
+        margin: 0 16px;
     }
     
     .welcome-banner h1 {
         font-size: 24px;
     }
     
+    .welcome-banner p {
+        font-size: 14px;
+    }
+    
     .dashboard-grid {
         grid-template-columns: 1fr;
+        gap: 16px;
+        margin: 0 16px;
+    }
+    
+    .dashboard-card {
+        padding: 20px;
+    }
+    
+    .dashboard-card h2 {
+        font-size: 16px;
+    }
+    
+    .card-content {
+        font-size: 13px;
     }
 
     .quick-links-sidebar {
-        position: fixed;
-        left: 0;
-        top: 70px;
         width: 260px;
-        height: calc(100vh - 70px);
         border-radius: 0 12px 12px 0;
-        z-index: 999;
         overflow-y: auto;
-        transform: translateX(0);
-        transition: transform 0.3s ease;
     }
     
     .sidebar-toggle {
-        display: flex;
-        position: fixed;
-        top: 80px;
-        left: 20px;
-        width: 40px;
-        height: 40px;
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        cursor: pointer;
-        z-index: 1001;
-        padding: 8px;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        transition: all 0.3s ease;
-    }
-    
-    .sidebar-overlay {
-        display: none;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
     }
     
     .sidebar-overlay.visible {
@@ -831,17 +864,42 @@ body {
     }
     
     .referees-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+        margin: 0 16px;
+    }
+    
+    .profile-container {
+        margin: 20px 16px;
+        max-width: none;
+    }
+    
+    .profile-card {
+        border-radius: 12px;
+    }
+    
+    .profile-form {
+        padding: 20px;
+    }
+    
+    .form-section {
+        margin-bottom: 24px;
+    }
+    
+    .form-group {
+        margin-bottom: 16px;
     }
     
     .form-actions {
         flex-direction: column;
+        gap: 8px;
     }
 
     .game-row {
         align-items: flex-start;
         gap: 8px;
         flex-direction: column;
+        padding: 12px;
     }
     
     .btn-primary,
@@ -850,20 +908,58 @@ body {
         width: 100%;
         text-align: center;
     }
+    
+    .container {
+        padding: 0;
+    }
+    
+    .dashboard-layout {
+        margin-top: 20px;
+    }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+    .navbar {
+        padding: 10px 12px;
+    }
+    
     .nav-brand {
         font-size: 18px;
     }
     
     .nav-menu {
-        gap: 8px;
+        gap: 6px;
     }
     
     .nav-link {
-        padding: 6px 8px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    
+    .login-box {
+        padding: 24px 18px;
+        margin: 16px;
+    }
+    
+    .login-box h1 {
+        font-size: 28px;
+    }
+    
+    .login-box .subtitle {
+        font-size: 13px;
+    }
+    
+    .form-group input,
+    .form-group select {
+        font-size: 16px;
+        padding: 12px 12px;
+        min-height: 44px;
+    }
+    
+    .btn-login {
+        font-size: 16px;
+        min-height: 48px;
+        padding: 12px 16px;
     }
     
     .referees-grid {
@@ -873,5 +969,122 @@ body {
     .profile-header {
         flex-direction: column;
         text-align: center;
+        padding: 20px;
+        gap: 15px;
+    }
+    
+    .profile-avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+    }
+    
+    .profile-info h2 {
+        font-size: 20px;
+    }
+    
+    .sidebar-link {
+        padding: 12px 10px;
+        font-size: 13px;
+        margin: 0 0 10px 0;
+    }
+    
+    .welcome-banner {
+        padding: 16px 12px;
+        margin: 0 12px;
+    }
+    
+    .welcome-banner h1 {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 8px 10px;
+    }
+    
+    .nav-brand {
+        font-size: 16px;
+    }
+    
+    .nav-menu {
+        gap: 4px;
+    }
+    
+    .nav-link {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .login-box {
+        padding: 20px 16px;
+    }
+    
+    .login-box h1 {
+        font-size: 24px;
+    }
+    
+    .form-group label {
+        font-size: 13px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px;
+        min-height: 44px;
+        padding: 10px 12px;
+    }
+    
+    .dashboard-grid {
+        gap: 12px;
+        margin: 0 12px;
+    }
+    
+    .dashboard-card {
+        padding: 16px;
+    }
+    
+    .dashboard-card h2 {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .card-content {
+        font-size: 12px;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        font-size: 14px;
+        padding: 12px 16px;
+        min-height: 44px;
+    }
+    
+    .profile-form {
+        padding: 16px;
+    }
+    
+    .form-section {
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 14px;
+    }
+    
+    .welcome-banner {
+        padding: 14px 10px;
+        margin: 0 10px;
+    }
+    
+    .welcome-banner h1 {
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+    
+    .welcome-banner p {
+        font-size: 13px;
     }
 }
