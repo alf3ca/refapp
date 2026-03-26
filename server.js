@@ -1,12 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'default-dev-secret-change-me';
 const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
 const GAMES_FILE = path.join(__dirname, 'games.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -51,47 +54,48 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 
 app.use(
   session({
-    secret: 'referee_portal_secret_key_2026',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 2 * 60 * 60 * 1000
+      maxAge: 2 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
     }
   })
 );
 
 function loadAccounts() {
-  if (!fs.existsSync(ACCOUNTS_FILE)) {
+  try {
+    if (!fs.existsSync(ACCOUNTS_FILE)) {
+      return [];
+    }
+    const raw = fs.readFileSync(ACCOUNTS_FILE, 'utf-8');
+    return JSON.parse(raw).referees || [];
+  } catch (err) {
+    console.error('Error loading accounts:', err);
     return [];
   }
-
-  const raw = fs.readFileSync(ACCOUNTS_FILE, 'utf-8');
-  const parsed = JSON.parse(raw);
-  return parsed.referees || [];
 }
 
 function saveAccounts(accounts) {
-  fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify({ referees: accounts }, null, 2));
+  try {
+    fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify({ referees: accounts }, null, 2));
+  } catch (err) {
+    console.error('Error saving accounts:', err);
+  }
 }
 
-function loadGameData() {
+// User-specific game data loading
+function loadUserGameData(userId) {
   const defaults = {
     games: [],
     teams: [],
     venues: [],
     leagues: [],
-    expenses: [],
     reports: [],
-    availability: {
-      dates: [],
-      preferredKickoffStart: '',
-      preferredKickoffEnd: '',
-      maxTravelDistanceMiles: '',
-      blockedWeekends: []
-    },
     discipline: [],
     reflections: [],
-    documents: [],
     fitness: [],
     contacts: [],
     extras: {
@@ -102,44 +106,45 @@ function loadGameData() {
     performanceTargets: []
   };
 
-  if (!fs.existsSync(GAMES_FILE)) {
+  try {
+    if (!fs.existsSync(GAMES_FILE)) {
+      return defaults;
+    }
+
+    const raw = fs.readFileSync(GAMES_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+
+    // User data is stored under userId key
+    return {
+      ...defaults,
+      ...(parsed[userId] || {})
+    };
+  } catch (err) {
+    console.error('Error loading game data for user', userId, ':', err);
     return defaults;
   }
+}
 
-  const raw = fs.readFileSync(GAMES_FILE, 'utf-8');
-  const parsed = JSON.parse(raw);
-
-  return {
-    ...defaults,
-    ...parsed,
-    availability: {
-      ...defaults.availability,
-      ...(parsed.availability || {})
-    },
-    extras: {
-      ...defaults.extras,
-      ...(parsed.extras || {})
+// User-specific game data saving
+function saveUserGameData(userId, data) {
+  try {
+    let allData = {};
+    if (fs.existsSync(GAMES_FILE)) {
+      const raw = fs.readFileSync(GAMES_FILE, 'utf-8');
+      allData = JSON.parse(raw) ||  {};
     }
-  };
+    allData[userId] = data;
+    fs.writeFileSync(GAMES_FILE, JSON.stringify(allData, null, 2));
+  } catch (err) {
+    console.error('Error saving game data for user', userId, ':', err);
+  }
 }
 
-function saveGameData(data) {
-  fs.writeFileSync(GAMES_FILE, JSON.stringify(data, null, 2));
-}
-
-function getNextAccountId(accounts) {
-  if (accounts.length === 0) return 1;
-  return Math.max(...accounts.map((account) => account.id)) + 1;
-}
-
-function getNextGameId(games) {
-  if (games.length === 0) return 1;
-  return Math.max(...games.map((game) => game.id)) + 1;
-}
-
-function getNextId(items) {
+// Consolidated ID generation function
+function getNextId(items = []) {
   if (!items || items.length === 0) return 1;
-  return Math.max(...items.map((item) => Number(item.id) || 0)) + 1;
+  const ids = items.map((item) => Number(item.id) || 0);
+  return ids.length > 0 ? Math.max(...ids) + 1 : 1;
 }
 
 function parseMatchDateTime(match) {
@@ -202,6 +207,23 @@ function requireLogin(req, res, next) {
   if (!req.session.userId) {
     return res.redirect('/login');
   }
+  
+  // Load user data to ensure it's current
+  try {
+    const accounts = loadAccounts();
+    const user = accounts.find((acc) => acc.id === req.session.userId);
+    
+    if (!user) {
+      req.session.destroy();
+      return res.redirect('/login');
+    }
+    
+    req.session.user = user;
+  } catch (err) {
+    console.error('Error in requireLogin:', err);
+    return res.status(500).send('An error occurred');
+  }
+  
   return next();
 }
 
@@ -216,67 +238,109 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', (req, res) => {
-  const { username = '', password = '' } = req.body;
-  const accounts = loadAccounts();
+app.post('/login', async (req, res) => {
+  try {
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
 
-  const user = accounts.find(
-    (account) => account.username === username && account.password === password
-  );
+    if (!username || !password) {
+      return res.status(400).render('login', { error: 'Username and password required' });
+    }
 
-  if (!user) {
-    return res.status(401).render('login', { error: 'Invalid username or password' });
+    const accounts = loadAccounts();
+    const user = accounts.find(
+      (account) => account.username.toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(401).render('login', { error: 'Invalid credentials' });
+    }
+
+    // Compare hashed password
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+
+    if (!passwordMatch) {
+      return res.status(401).render('login', { error: 'Invalid credentials' });
+    }
+
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.name = user.name;
+
+    return res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.status(500).render('login', { error: 'An error occurred during login' });
   }
-
-  req.session.userId = user.id;
-  req.session.username = user.username;
-  req.session.name = user.name;
-
-  return res.redirect('/dashboard');
 });
 
 app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', (req, res) => {
-  const name = (req.body.name || '').trim();
-  const username = (req.body.username || '').trim();
-  const email = (req.body.email || '').trim();
-  const experience = (req.body.experience || '').trim() || 'Not specified';
-  const password = req.body.password || '';
+app.post('/register', async (req, res) => {
+  try {
+    const name = (req.body.name || '').trim();
+    const username = (req.body.username || '').trim();
+    const email = (req.body.email || '').trim();
+    const experience = (req.body.experience || '').trim() || 'Not specified';
+    const password = (req.body.password || '').trim();
 
-  if (!name || !username || !email || !password) {
-    return res.status(400).render('register', { error: 'All required fields must be filled' });
+    // Input validation
+    if (!name || !username || !email || !password) {
+      return res.status(400).render('register', { error: 'All required fields must be filled' });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).render('register', { error: 'Username must be at least 3 characters' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).render('register', { error: 'Password must be at least 6 characters' });
+    }
+
+    // Email validation (basic)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).render('register', { error: 'Invalid email format' });
+    }
+
+    const accounts = loadAccounts();
+
+    if (findByUsername(accounts, username)) {
+      return res.status(409).render('register', { error: 'Username already exists' });
+    }
+
+    if (findByEmail(accounts, email)) {
+      return res.status(409).render('register', { error: 'Email already already registered' });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const newUser = {
+      id: getNextId(accounts),
+      username,
+      email,
+      name,
+      experience,
+      passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    accounts.push(newUser);
+    saveAccounts(accounts);
+
+    return res.redirect('/login?registered=1');
+  } catch (err) {
+    console.error('Registration error:', err);
+    return res.status(500).render('register', { error: 'An error occurred during registration' });
   }
-
-  const accounts = loadAccounts();
-
-  if (findByUsername(accounts, username)) {
-    return res.status(409).render('register', { error: 'Username already exists' });
-  }
-
-  if (findByEmail(accounts, email)) {
-    return res.status(409).render('register', { error: 'Email already exists' });
-  }
-
-  accounts.push({
-    id: getNextAccountId(accounts),
-    username,
-    password,
-    email,
-    name,
-    experience
-  });
-
-  saveAccounts(accounts);
-  return res.redirect('/login');
 });
 
 app.get('/dashboard', requireLogin, (req, res) => {
   const accounts = loadAccounts();
   const user = accounts.find((account) => account.id === req.session.userId);
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
     req.session.destroy(() => {});
@@ -340,7 +404,7 @@ app.get('/dashboard', requireLogin, (req, res) => {
 app.get('/my-games', requireLogin, (req, res) => {
   const accounts = loadAccounts();
   const user = accounts.find((account) => account.id === req.session.userId);
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
     req.session.destroy(() => {});
@@ -364,7 +428,7 @@ app.get('/my-games', requireLogin, (req, res) => {
 });
 
 app.get('/games/new', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   return res.render('add-game', {
     teams: gameData.teams,
     venues: gameData.venues,
@@ -448,7 +512,7 @@ function createMatchHandler(req, res) {
     return res.status(400).json({ error: 'Invalid date or kickoff time' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
 
   if (!gameData.teams.some((team) => team.toLowerCase() === homeTeam.toLowerCase())) {
     gameData.teams.push(homeTeam);
@@ -499,7 +563,7 @@ function createMatchHandler(req, res) {
   };
 
   gameData.games.push(newGame);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
 
   return res.status(201).json({ success: true, game: newGame });
 }
@@ -508,7 +572,7 @@ app.post('/api/matches', requireLogin, upload.array('attachments', 10), createMa
 app.post('/api/games', requireLogin, createMatchHandler);
 
 app.get('/reports/new', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const myMatches = gameData.games
     .filter((match) => match.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -526,7 +590,7 @@ app.post('/api/reports', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Match, report type, and content are required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const match = gameData.games.find((item) => item.id === matchId && item.createdBy === req.session.userId);
 
   if (!match) {
@@ -547,13 +611,13 @@ app.post('/api/reports', requireLogin, (req, res) => {
   if (!isDraft) {
     match.reportSubmitted = true;
   }
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
 
   return res.status(201).json({ success: true, report });
 });
 
 app.get('/reports', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const myReports = gameData.reports
     .filter((report) => report.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -573,7 +637,7 @@ app.get('/api/reports/previous', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Report type is required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const previous = gameData.reports
     .filter((report) => report.createdBy === req.session.userId && report.reportType === reportType)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0))[0];
@@ -583,7 +647,7 @@ app.get('/api/reports/previous', requireLogin, (req, res) => {
 
 app.get('/reports/:id/text', requireLogin, (req, res) => {
   const reportId = Number(req.params.id);
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const report = gameData.reports.find((item) => item.id === reportId && item.createdBy === req.session.userId);
 
   if (!report) {
@@ -599,7 +663,7 @@ app.get('/reports/:id/text', requireLogin, (req, res) => {
 
 app.get('/reports/:id/pdf', requireLogin, (req, res) => {
   const reportId = Number(req.params.id);
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const report = gameData.reports.find((item) => item.id === reportId && item.createdBy === req.session.userId);
 
   if (!report) {
@@ -624,7 +688,7 @@ app.get('/reports/:id/pdf', requireLogin, (req, res) => {
 
 app.get('/discipline', requireLogin, (req, res) => {
   const query = String(req.query.q || '').trim().toLowerCase();
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   let entries = (gameData.discipline || [])
     .filter((entry) => entry.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -653,7 +717,7 @@ app.post('/api/discipline', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'All discipline fields are required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entry = {
     id: getNextId(gameData.discipline),
     cardType,
@@ -667,12 +731,12 @@ app.post('/api/discipline', requireLogin, (req, res) => {
   };
 
   gameData.discipline.push(entry);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true, entry });
 });
 
 app.get('/payments', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const matches = gameData.games.filter((match) => match.createdBy === req.session.userId);
   const expenses = gameData.expenses.filter((expense) => expense.createdBy === req.session.userId);
 
@@ -713,19 +777,19 @@ app.post('/api/matches/:id/payment-status', requireLogin, (req, res) => {
   const matchId = Number(req.params.id);
   const feePaid = req.body.feePaid === true || req.body.feePaid === 'true' || req.body.feePaid === 'on';
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const match = gameData.games.find((item) => item.id === matchId && item.createdBy === req.session.userId);
   if (!match) {
     return res.status(404).json({ error: 'Match not found' });
   }
 
   match.feePaid = feePaid;
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.json({ success: true, match });
 });
 
 app.get('/payments/export.csv', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const matches = gameData.games.filter((match) => match.createdBy === req.session.userId);
   const expenses = gameData.expenses.filter((expense) => expense.createdBy === req.session.userId);
 
@@ -758,7 +822,7 @@ app.get('/payments/export.csv', requireLogin, (req, res) => {
 });
 
 app.get('/performance', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const matches = gameData.games.filter((match) => match.createdBy === req.session.userId);
   const discipline = gameData.discipline.filter((entry) => entry.createdBy === req.session.userId);
   const targets = gameData.performanceTargets.filter((target) => target.createdBy === req.session.userId);
@@ -802,7 +866,7 @@ app.post('/api/performance/assessment', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Match is required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const match = gameData.games.find((item) => item.id === matchId && item.createdBy === req.session.userId);
   if (!match) {
     return res.status(404).json({ error: 'Match not found' });
@@ -810,7 +874,7 @@ app.post('/api/performance/assessment', requireLogin, (req, res) => {
 
   match.observerMark = observerMark;
   match.selfRating = selfRating;
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.json({ success: true, match });
 });
 
@@ -821,7 +885,7 @@ app.post('/api/performance/targets', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Target title is required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const target = {
     id: getNextId(gameData.performanceTargets),
     title,
@@ -830,12 +894,12 @@ app.post('/api/performance/targets', requireLogin, (req, res) => {
     createdAt: new Date().toISOString()
   };
   gameData.performanceTargets.push(target);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true, target });
 });
 
 app.get('/reflections', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entries = gameData.reflections
     .filter((entry) => entry.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -857,7 +921,7 @@ app.post('/api/reflections', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'At least one reflection field is required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entry = {
     id: getNextId(gameData.reflections),
     ...payload,
@@ -866,12 +930,12 @@ app.post('/api/reflections', requireLogin, (req, res) => {
   };
 
   gameData.reflections.push(entry);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true, entry });
 });
 
 app.get('/fitness', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entries = gameData.fitness
     .filter((entry) => entry.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -888,7 +952,7 @@ app.post('/api/fitness', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Type, title, and date are required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entry = {
     id: getNextId(gameData.fitness),
     entryType,
@@ -900,12 +964,12 @@ app.post('/api/fitness', requireLogin, (req, res) => {
   };
 
   gameData.fitness.push(entry);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true, entry });
 });
 
 app.get('/contacts', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entries = gameData.contacts
     .filter((entry) => entry.createdBy === req.session.userId)
     .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
@@ -923,7 +987,7 @@ app.post('/api/contacts', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Contact category and name are required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   const entry = {
     id: getNextId(gameData.contacts),
     category,
@@ -936,12 +1000,12 @@ app.post('/api/contacts', requireLogin, (req, res) => {
   };
 
   gameData.contacts.push(entry);
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true, entry });
 });
 
 app.get('/extras', requireLogin, (req, res) => {
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   return res.render('extras', {
     preMatchChecklist: gameData.extras.preMatchChecklist,
     packingChecklist: gameData.extras.packingChecklist,
@@ -958,14 +1022,14 @@ app.post('/api/extras/checklist', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Checklist type and item are required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   gameData.extras[listType].push({
     id: getNextId(gameData.extras[listType]),
     item,
     checked: false,
     createdAt: new Date().toISOString()
   });
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true });
 });
 
@@ -978,7 +1042,7 @@ app.post('/api/extras/kit', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Kit item is required' });
   }
 
-  const gameData = loadGameData();
+  const gameData = loadUserGameData(req.session.userId);
   gameData.extras.kitInventory.push({
     id: getNextId(gameData.extras.kitInventory),
     item,
@@ -986,7 +1050,7 @@ app.post('/api/extras/kit', requireLogin, (req, res) => {
     notes,
     createdAt: new Date().toISOString()
   });
-  saveGameData(gameData);
+  saveUserGameData(req.session.userId, gameData);
   return res.status(201).json({ success: true });
 });
 
