@@ -16,16 +16,6 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const AGE_GROUPS = Array.from({ length: 15 }, (_, index) => `U${index + 7}`);
 const MATCH_ROLES = ['Referee', 'Assistant Referee', 'Fourth Official'];
 const MATCH_STATUSES = ['upcoming', 'completed', 'cancelled'];
-const DOCUMENT_CATEGORIES = [
-  'Referee Registration',
-  'Safeguarding Certificate',
-  'DBS Record Details',
-  'Laws of the Game Notes',
-  'League Rule Variations',
-  'Receipts',
-  'Expense Evidence',
-  'Other'
-];
 
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -98,6 +88,7 @@ function loadUserGameData(userId) {
     reflections: [],
     fitness: [],
     contacts: [],
+    expenses: [],
     extras: {
       preMatchChecklist: [],
       packingChecklist: [],
@@ -344,7 +335,7 @@ app.get('/dashboard', requireLogin, (req, res) => {
 
   if (!user) {
     req.session.destroy(() => {});
-    return res.redirect('/login');
+    return res.redirect('/');
   }
 
   const now = new Date();
@@ -408,7 +399,7 @@ app.get('/my-games', requireLogin, (req, res) => {
 
   if (!user) {
     req.session.destroy(() => {});
-    return res.redirect('/login');
+    return res.redirect('/');
   }
 
   const myGames = gameData.games
@@ -445,15 +436,13 @@ app.get('/profile', requireLogin, (req, res) => {
 
   if (!user) {
     req.session.destroy(() => {});
-    return res.redirect('/login');
+    return res.redirect('/');
   }
 
   return res.render('profile', { user });
 });
 
-app.get('/referees', requireLogin, (req, res) => {
-  return res.redirect('/dashboard');
-});
+
 
 app.post('/api/update-profile', requireLogin, (req, res) => {
   const { name, email, experience } = req.body;
@@ -540,7 +529,7 @@ function createMatchHandler(req, res) {
   }));
 
   const newGame = {
-    id: getNextGameId(gameData.games),
+    id: getNextId(gameData.games),
     matchDate,
     kickoffTime,
     league,
@@ -1056,7 +1045,7 @@ app.post('/api/extras/kit', requireLogin, (req, res) => {
 
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 
