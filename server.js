@@ -205,7 +205,7 @@ function findByEmail(accounts, email) {
 
 function requireLogin(req, res, next) {
   if (!req.session.userId) {
-    return res.redirect('/login');
+    return res.redirect('/');
   }
   
   // Load user data to ensure it's current
@@ -215,7 +215,7 @@ function requireLogin(req, res, next) {
     
     if (!user) {
       req.session.destroy();
-      return res.redirect('/login');
+      return res.redirect('/');
     }
     
     req.session.user = user;
