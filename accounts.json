@@ -1,3 +1,13 @@
 {
-  "referees": []
+  "referees": [
+    {
+      "id": 1,
+      "username": "testuser",
+      "email": "test@example.com",
+      "name": "Test User",
+      "experience": "5 years",
+      "passwordHash": "$2b$10$FXAiw7rH4Lr.Uvre7JX5S.hZkZhT01ZJs6h4NOWR7uiob1vjkf/mq",
+      "createdAt": "2026-03-26T18:55:02.784Z"
+    }
+  ]
 }
