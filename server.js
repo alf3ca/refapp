@@ -364,7 +364,15 @@ app.get('/my-games', requireLogin, (req, res) => {
 });
 
 app.get('/games/new', requireLogin, (req, res) => {
-  return res.redirect('/my-games');
+  const gameData = loadGameData();
+  return res.render('add-game', {
+    teams: gameData.teams,
+    venues: gameData.venues,
+    leagues: gameData.leagues,
+    ageGroups: AGE_GROUPS,
+    matchRoles: MATCH_ROLES,
+    matchStatuses: MATCH_STATUSES
+  });
 });
 
 app.get('/profile', requireLogin, (req, res) => {
