@@ -499,34 +499,6 @@ function createMatchHandler(req, res) {
 app.post('/api/matches', requireLogin, upload.array('attachments', 10), createMatchHandler);
 app.post('/api/games', requireLogin, createMatchHandler);
 
-app.get('/expenses/new', requireLogin, (req, res) => {
-  return res.render('expense-new');
-});
-
-app.post('/api/expenses', requireLogin, (req, res) => {
-  const title = (req.body.title || '').trim();
-  const amount = Number(req.body.amount || 0);
-  const notes = (req.body.notes || '').trim();
-
-  if (!title || amount <= 0) {
-    return res.status(400).json({ error: 'Expense title and amount are required' });
-  }
-
-  const gameData = loadGameData();
-  const expense = {
-    id: getNextId(gameData.expenses),
-    title,
-    amount,
-    notes,
-    createdBy: req.session.userId,
-    createdAt: new Date().toISOString()
-  };
-
-  gameData.expenses.push(expense);
-  saveGameData(gameData);
-  return res.status(201).json({ success: true, expense });
-});
-
 app.get('/reports/new', requireLogin, (req, res) => {
   const gameData = loadGameData();
   const myMatches = gameData.games
@@ -640,107 +612,6 @@ app.get('/reports/:id/pdf', requireLogin, (req, res) => {
   pdf.moveDown();
   pdf.fontSize(12).text(report.content || '');
   pdf.end();
-});
-
-app.get('/availability', requireLogin, (req, res) => {
-  const gameData = loadGameData();
-  const dates = (gameData.availability.dates || [])
-    .filter((item) => item.createdBy === req.session.userId)
-    .sort((left, right) => String(left.date).localeCompare(String(right.date)));
-
-  const blockedWeekends = (gameData.availability.blockedWeekends || []).filter(
-    (item) => item.createdBy === req.session.userId
-  );
-
-  const settings = {
-    preferredKickoffStart: gameData.availability.preferredKickoffStart || '',
-    preferredKickoffEnd: gameData.availability.preferredKickoffEnd || '',
-    maxTravelDistanceMiles: gameData.availability.maxTravelDistanceMiles || ''
-  };
-
-  return res.render('availability', { dates, blockedWeekends, settings });
-});
-
-app.post('/api/availability/date', requireLogin, (req, res) => {
-  const date = (req.body.date || '').trim();
-  const status = (req.body.status || '').trim();
-  const validStatuses = ['available', 'unavailable'];
-
-  if (!date || !validStatuses.includes(status)) {
-    return res.status(400).json({ error: 'Date and valid status are required' });
-  }
-
-  const gameData = loadGameData();
-  gameData.availability.dates = gameData.availability.dates.filter(
-    (item) => !(item.createdBy === req.session.userId && item.date === date)
-  );
-
-  gameData.availability.dates.push({
-    id: getNextId(gameData.availability.dates),
-    date,
-    status,
-    createdBy: req.session.userId,
-    createdAt: new Date().toISOString()
-  });
-
-  saveGameData(gameData);
-  return res.status(201).json({ success: true });
-});
-
-app.post('/api/availability/settings', requireLogin, (req, res) => {
-  const preferredKickoffStart = (req.body.preferredKickoffStart || '').trim();
-  const preferredKickoffEnd = (req.body.preferredKickoffEnd || '').trim();
-  const maxTravelDistanceMiles = (req.body.maxTravelDistanceMiles || '').trim();
-  const blockedWeekendDate = (req.body.blockedWeekendDate || '').trim();
-
-  const gameData = loadGameData();
-  gameData.availability.preferredKickoffStart = preferredKickoffStart;
-  gameData.availability.preferredKickoffEnd = preferredKickoffEnd;
-  gameData.availability.maxTravelDistanceMiles = maxTravelDistanceMiles;
-
-  if (blockedWeekendDate) {
-    const exists = gameData.availability.blockedWeekends.some(
-      (item) => item.createdBy === req.session.userId && item.date === blockedWeekendDate
-    );
-    if (!exists) {
-      gameData.availability.blockedWeekends.push({
-        id: getNextId(gameData.availability.blockedWeekends),
-        date: blockedWeekendDate,
-        createdBy: req.session.userId,
-        createdAt: new Date().toISOString()
-      });
-    }
-  }
-
-  saveGameData(gameData);
-  return res.json({ success: true });
-});
-
-app.get('/availability.ics', requireLogin, (req, res) => {
-  const gameData = loadGameData();
-  const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-  const availabilityDates = gameData.availability.dates.filter((item) => item.createdBy === req.session.userId);
-  const blockedWeekends = gameData.availability.blockedWeekends.filter((item) => item.createdBy === req.session.userId);
-  const combined = [
-    ...availabilityDates.map((item) => ({ date: item.date, label: `Availability: ${item.status}` })),
-    ...blockedWeekends.map((item) => ({ date: item.date, label: 'Blocked Weekend' }))
-  ];
-
-  const events = combined.map((item, index) => {
-    const date = (item.date || '').replace(/-/g, '');
-    const nextDay = new Date(`${item.date}T00:00:00`);
-    nextDay.setDate(nextDay.getDate() + 1);
-    const nextDayValue = nextDay.toISOString().slice(0, 10).replace(/-/g, '');
-
-    return `BEGIN:VEVENT\nUID:availability-${index}-${Date.now()}@referee-portal\nDTSTAMP:${now}\nDTSTART;VALUE=DATE:${date}\nDTEND;VALUE=DATE:${nextDayValue}\nSUMMARY:${item.label}\nEND:VEVENT`;
-  });
-
-  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Referee Portal//EN\n${events.join('\n')}\nEND:VCALENDAR\n`;
-
-  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename=availability.ics');
-  return res.send(ics);
 });
 
 app.get('/discipline', requireLogin, (req, res) => {
@@ -989,38 +860,6 @@ app.post('/api/reflections', requireLogin, (req, res) => {
   gameData.reflections.push(entry);
   saveGameData(gameData);
   return res.status(201).json({ success: true, entry });
-});
-
-app.get('/documents', requireLogin, (req, res) => {
-  const gameData = loadGameData();
-  const documents = gameData.documents
-    .filter((item) => item.createdBy === req.session.userId)
-    .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
-  return res.render('documents', { documents, categories: DOCUMENT_CATEGORIES });
-});
-
-app.post('/api/documents', requireLogin, upload.single('documentFile'), (req, res) => {
-  const category = (req.body.category || '').trim();
-  const title = (req.body.title || '').trim();
-
-  if (!category || !title || !req.file) {
-    return res.status(400).json({ error: 'Category, title, and file are required' });
-  }
-
-  const gameData = loadGameData();
-  const documentEntry = {
-    id: getNextId(gameData.documents),
-    category,
-    title,
-    originalName: req.file.originalname,
-    fileName: req.file.filename,
-    path: `/uploads/${req.file.filename}`,
-    createdBy: req.session.userId,
-    createdAt: new Date().toISOString()
-  };
-  gameData.documents.push(documentEntry);
-  saveGameData(gameData);
-  return res.status(201).json({ success: true, document: documentEntry });
 });
 
 app.get('/fitness', requireLogin, (req, res) => {
