@@ -19,8 +19,8 @@
         </nav>
 
         <div class="welcome-banner">
-            <h1>Welcome, <%= user.name %>! 👋</h1>
-            <p>You are logged in as <strong><%= user.username %></strong></p>
+            <h1>Welcome, <%= user.name %>! 🏆</h1>
+            <p>Your match performance hub — track fixtures, development, and records</p>
         </div>
 
         <%- include('partials/side-menu') %>
@@ -56,22 +56,7 @@
             </div>
 
                 <div class="dashboard-card">
-                <h2>💷 Unpaid Fees</h2>
-                <div class="card-content">
-                    <p><strong>Unpaid matches:</strong> <%= summary.unpaidCount %></p>
-                    <p><strong>Total due:</strong> £<%= Number(summary.unpaidFeesTotal || 0).toFixed(2) %></p>
-                </div>
-            </div>
-
-                <div class="dashboard-card">
-                <h2>📝 Reports Due</h2>
-                <div class="card-content">
-                    <p><strong>Reports outstanding:</strong> <%= summary.reportsDueCount %></p>
-                </div>
-            </div>
-
-                <div class="dashboard-card">
-                <h2>📒 Recent Notes / Incidents</h2>
+                <h2>� Recent Notes / Performance</h2>
                 <div class="card-content">
                     <% if (summary.recentNotes.length > 0) { %>
                         <% summary.recentNotes.forEach((match) => { %>
@@ -84,13 +69,29 @@
             </div>
 
                 <div class="dashboard-card">
-                <h2>📋 Your Profile</h2>
+                <h2>📝 Reports Due</h2>
+                <div class="card-content">
+                    <p><strong>Reports outstanding:</strong> <%= summary.reportsDueCount %></p>
+                    <a href="/reports/new" class="btn-secondary">Create Report</a>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>💷 Account Balance</h2>
+                <div class="card-content">
+                    <p><strong>Unpaid matches:</strong> <%= summary.unpaidCount %></p>
+                    <p><strong>Total due:</strong> £<%= Number(summary.unpaidFeesTotal || 0).toFixed(2) %></p>
+                    <a href="/payments" class="btn-secondary">View Details</a>
+                </div>
+            </div>
+
+                <div class="dashboard-card">
+                <h2>👤 Profile & Settings</h2>
                 <div class="card-content">
                     <p><strong>Name:</strong> <%= user.name %></p>
-                    <p><strong>Username:</strong> <%= user.username %></p>
                     <p><strong>Email:</strong> <%= user.email %></p>
                     <p><strong>Experience:</strong> <%= user.experience %></p>
-                    <a href="/profile" class="btn-secondary">Edit Profile</a>
+                    <a href="/profile" class="btn-secondary">Update Profile</a>
                 </div>
                 </div>
             </div>
