@@ -101,26 +101,7 @@ app.use((req, res, next) => {
   next();
 });
 
-function loadAccounts() {
-  try {
-    if (!fs.existsSync(ACCOUNTS_FILE)) {
-      return [];
-    }
-    const raw = fs.readFileSync(ACCOUNTS_FILE, 'utf-8');
-    return JSON.parse(raw).referees || [];
-  } catch (err) {
-    console.error('Error loading accounts:', err);
-    return [];
-  }
-}
-
-function saveAccounts(accounts) {
-  try {
-    fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify({ referees: accounts }, null, 2));
-  } catch (err) {
-    console.error('Error saving accounts:', err);
-  }
-}
+// Legacy account functions removed - now using db-json module for user management
 
 // User-specific game data loading
 function loadUserGameData(userId) {
@@ -228,19 +209,9 @@ function escapeCsvCell(value) {
   return raw;
 }
 
-function findByUsername(accounts, username) {
-  return accounts.find(
-    (account) => account.username.toLowerCase() === username.toLowerCase()
-  );
-}
+// Legacy lookup functions removed - now using db-json module
 
-function findByEmail(accounts, email) {
-  return accounts.find(
-    (account) => account.email.toLowerCase() === email.toLowerCase()
-  );
-}
-
-async function requireLogin(req, res, next) {
+function requireLogin(req, res, next) {
   console.log('🔍 requireLogin check:', {
     hasSessionId: !!req.session.userId,
     sessionId: req.session.userId,
@@ -265,7 +236,6 @@ async function requireLogin(req, res, next) {
       return res.redirect('/');
     }
     
-    req.session.user = user;
     console.log('✅ Session valid for user:', user.username);
     return next();
   } catch (err) {
@@ -285,7 +255,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   try {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -350,7 +320,7 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
   try {
     const name = (req.body.name || '').trim();
     const username = (req.body.username || '').trim();
@@ -411,7 +381,7 @@ app.post('/register', async (req, res) => {
 });
 
 // API endpoints for real-time validation
-app.get('/api/check-username', async (req, res) => {
+app.get('/api/check-username', (req, res) => {
   try {
     const username = (req.query.username || '').trim();
     if (username.length < 3) {
@@ -425,7 +395,7 @@ app.get('/api/check-username', async (req, res) => {
   }
 });
 
-app.get('/api/check-email', async (req, res) => {
+app.get('/api/check-email', (req, res) => {
   try {
     const email = (req.query.email|| '').trim();
     if (!email.includes('@')) {
@@ -1228,12 +1198,6 @@ app.post('/api/import-centre-circle', requireLogin, async (req, res) => {
     console.error('❌ Import error:', error);
     return res.status(500).json({ error: error.message || 'Failed to import from Centre Circle' });
   }
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/');
-  });
 });
 
 // Debug endpoint to test manual session saving
