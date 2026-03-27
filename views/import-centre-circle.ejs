@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import from Centre Circle - Referee Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .import-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 30px;
+      background: #f9fafb;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .import-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .import-header h1 {
+      font-size: 28px;
+      margin: 0 0 10px 0;
+      color: #1f2937;
+    }
+
+    .import-header p {
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #1e40af;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .warning-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #92400e;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 25px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-primary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .message {
+      padding: 12px 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .message.success {
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+
+    .message.error {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #7f1d1d;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .spinner {
+      border: 3px solid #e5e7eb;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 10px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/side-menu'); %>
+
+  <div class="import-container">
+    <div class="import-header">
+      <h1>Import from Centre Circle</h1>
+      <p>Automatically import your fixtures</p>
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <div class="info-box">
+      <strong>How it works:</strong>
+      Log in with your Centre Circle account credentials. We'll fetch all your assigned fixtures and import them as upcoming matches.
+    </div>
+
+    <div class="warning-box">
+      <strong>🔒 Security note:</strong>
+      Your Centre Circle credentials are used only for this import and are not stored on our servers.
+    </div>
+
+    <form id="importForm">
+      <div class="form-group">
+        <label for="email">Centre Circle Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="your@email.com"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Centre Circle Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="••••••••"
+          required
+        />
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Importing your fixtures... This may take a minute.</div>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn btn-primary" id="submitBtn">Import Fixtures</button>
+        <a href="/my-games" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('importForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const messageContainer = document.getElementById('messageContainer');
+      const submitBtn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+
+      if (!email || !password) {
+        messageContainer.innerHTML = '<div class="message error">Please fill in all fields</div>';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      loading.style.display = 'block';
+      messageContainer.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/import-centre-circle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          messageContainer.innerHTML = `<div class="message success">✅ ${data.message}</div>`;
+          setTimeout(() => {
+            window.location.href = '/my-games';
+          }, 2000);
+        } else {
+          messageContainer.innerHTML = `<div class="message error">❌ ${data.error || 'Import failed'}</div>`;
+        }
+      } catch (error) {
+        messageContainer.innerHTML = `<div class="message error">❌ Error: ${error.message}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
