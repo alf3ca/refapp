@@ -307,18 +307,15 @@
 
         // Form submission
         form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
             // Validate one more time before submit
             if (passwordInput.value !== confirmPasswordInput.value) {
+                e.preventDefault();
                 alert('Passwords do not match');
                 return;
             }
 
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating Account...';
-            
-            form.submit();
+            // Allow form to submit normally to the server
+            // Don't prevent default - let the form POST to /register
         });
     </script>
 </body>
