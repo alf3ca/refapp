@@ -1179,14 +1179,32 @@ app.get('/debug/db-status', (req, res) => {
     const database = db.getDb();
     const users = database.prepare('SELECT COUNT(*) as count FROM users').get();
     const allUsers = database.prepare('SELECT id, username, email FROM users LIMIT 10').all();
+    const fs = require('fs');
+    const dbPath = require('path').join(__dirname, 'referees.db');
+    const dbExists = fs.existsSync(dbPath);
+    const dbStats = dbExists ? fs.statSync(dbPath) : null;
+    
     res.json({
+      status: 'OK',
+      nodeEnv: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      database: {
+        path: dbPath,
+        exists: dbExists,
+        size: dbStats ? dbStats.size : 0,
+        sizeKB: dbStats ? (dbStats.size / 1024).toFixed(2) : 0
+      },
       totalUsers: users.count,
       sampleUsers: allUsers,
-      nodeEnv: process.env.NODE_ENV,
-      timestamp: new Date().toISOString()
+      sessionStorePath: require('path').join(__dirname, 'sessions'),
+      sessionFilesExist: fs.existsSync(require('path').join(__dirname, 'sessions'))
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ 
+      error: err.message,
+      stack: err.stack,
+      nodeEnv: process.env.NODE_ENV
+    });
   }
 });
 
