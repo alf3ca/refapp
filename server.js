@@ -47,8 +47,8 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 // Store sessions - use PostgreSQL when available, otherwise file-based
 const sessionOptions = {
   secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,  // Always save, even if unmodified
+  saveUninitialized: true,  // Save new sessions
   cookie: {
     maxAge: 2 * 60 * 60 * 1000,
     httpOnly: true,
@@ -300,10 +300,11 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.name = user.name;
+    req.session.touch(); // Mark session as modified
 
     console.log('✅ Login successful for user:', user.username);
     console.log('📌 Session ID before save:', req.sessionID);
-    console.log('📌 Session data:', { userId: req.session.userId, username: req.session.username });
+    console.log('📌 Session data BEFORE persistence:', { userId: req.session.userId, username: req.session.username });
     
     // Explicitly save session before redirecting
     req.session.save((err) => {
@@ -311,7 +312,8 @@ app.post('/login', async (req, res) => {
         console.error('❌ Session save error:', err);
         return res.status(500).render('login', { error: 'Session error occurred' });
       }
-      console.log('✅ Session saved to store');
+      console.log('✅ Session saved callback fired');
+      console.log('📌 Session data AFTER persistence:', { userId: req.session.userId, username: req.session.username });
       console.log('📌 Session ID after save:', req.sessionID);
       console.log('📍 Redirecting to /dashboard');
       return res.redirect('/dashboard');
@@ -1222,13 +1224,19 @@ app.get('/debug/db-status', async (req, res) => {
     let sessionInfo = null;
     try {
       const sessionsResult = await database.query('SELECT COUNT(*) as count FROM session');
+      const sessionData = await database.query('SELECT sid, sess FROM session LIMIT 5');
       sessionInfo = {
         count: sessionsResult.rows[0].count,
-        status: '✅ PostgreSQL session table exists'
+        status: '✅ PostgreSQL session table exists',
+        recentSessions: sessionData.rows.map(row => ({
+          sid: row.sid,
+          data: row.sess
+        }))
       };
     } catch (tableErr) {
       sessionInfo = {
-        status: '⚠️ Session table not found - will be created on first session'
+        status: '⚠️ Session table not found - will be created on first session',
+        error: tableErr.message
       };
     }
     
@@ -1244,7 +1252,13 @@ app.get('/debug/db-status', async (req, res) => {
         totalUsers: usersResult.rows[0].count,
         sampleUsers: usersData.rows
       },
-      sessions: sessionInfo
+      sessions: sessionInfo,
+      currentSession: {
+        sessionID: req.sessionID,
+        hasUserId: !!req.session.userId,
+        userId: req.session.userId,
+        username: req.session.username
+      }
     });
   } catch (err) {
     res.status(500).json({ 
