@@ -235,11 +235,14 @@ async function requireLogin(req, res, next) {
   console.log('🔍 requireLogin check:', {
     hasSessionId: !!req.session.userId,
     sessionId: req.session.userId,
+    sessionID: req.sessionID,
+    cookies: req.headers.cookie,
     headers: req.headers.cookie ? 'Cookies present' : 'NO COOKIES'
   });
 
   if (!req.session.userId) {
     console.log('❌ No session - redirecting to /');
+    console.log('📌 Full session object:', req.session);
     return res.redirect('/');
   }
   
@@ -299,6 +302,8 @@ app.post('/login', async (req, res) => {
     req.session.name = user.name;
 
     console.log('✅ Login successful for user:', user.username);
+    console.log('📌 Session ID before save:', req.sessionID);
+    console.log('📌 Session data:', { userId: req.session.userId, username: req.session.username });
     
     // Explicitly save session before redirecting
     req.session.save((err) => {
@@ -306,6 +311,8 @@ app.post('/login', async (req, res) => {
         console.error('❌ Session save error:', err);
         return res.status(500).render('login', { error: 'Session error occurred' });
       }
+      console.log('✅ Session saved to store');
+      console.log('📌 Session ID after save:', req.sessionID);
       console.log('📍 Redirecting to /dashboard');
       return res.redirect('/dashboard');
     });
@@ -1206,36 +1213,44 @@ app.get('/logout', (req, res) => {
 });
 
 // Debug endpoint to check database status (remove in production)
-app.get('/debug/db-status', (req, res) => {
+app.get('/debug/db-status', async (req, res) => {
   try {
     const database = db.getDb();
-    const users = database.prepare('SELECT COUNT(*) as count FROM users').get();
-    const allUsers = database.prepare('SELECT id, username, email FROM users LIMIT 10').all();
-    const fs = require('fs');
-    const dbPath = require('path').join(__dirname, 'referees.db');
-    const dbExists = fs.existsSync(dbPath);
-    const dbStats = dbExists ? fs.statSync(dbPath) : null;
+    const usersResult = await database.query('SELECT COUNT(*) as count FROM users');
+    const usersData = await database.query('SELECT id, username, email FROM users LIMIT 10');
+    
+    let sessionInfo = null;
+    try {
+      const sessionsResult = await database.query('SELECT COUNT(*) as count FROM session');
+      sessionInfo = {
+        count: sessionsResult.rows[0].count,
+        status: '✅ PostgreSQL session table exists'
+      };
+    } catch (tableErr) {
+      sessionInfo = {
+        status: '⚠️ Session table not found - will be created on first session'
+      };
+    }
     
     res.json({
       status: 'OK',
       nodeEnv: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
       database: {
-        path: dbPath,
-        exists: dbExists,
-        size: dbStats ? dbStats.size : 0,
-        sizeKB: dbStats ? (dbStats.size / 1024).toFixed(2) : 0
+        type: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite',
+        status: '✅ Connected'
       },
-      totalUsers: users.count,
-      sampleUsers: allUsers,
-      sessionStorePath: require('path').join(__dirname, 'sessions'),
-      sessionFilesExist: fs.existsSync(require('path').join(__dirname, 'sessions'))
+      users: {
+        totalUsers: usersResult.rows[0].count,
+        sampleUsers: usersData.rows
+      },
+      sessions: sessionInfo
     });
   } catch (err) {
     res.status(500).json({ 
       error: err.message,
-      stack: err.stack,
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
+      databaseUrl: process.env.DATABASE_URL ? '✓ Set' : '✗ Not set'
     });
   }
 });
