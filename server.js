@@ -92,6 +92,24 @@ app.use(session({
   store: sessionStore
 }));
 
+// Log session info for every request
+app.use((req, res, next) => {
+  console.log('\n📨 [REQUEST] Path:', req.path);
+  console.log('📨 Session ID:', req.sessionID);
+  console.log('📨 Cookie header:', req.get('cookie'));
+  console.log('📨 Session userId:', req.session.userId);
+  next();
+});
+
+// Log response session info
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    console.log('📤 [RESPONSE] Set-Cookie headers:', res.getHeader('set-cookie'));
+    console.log('📤 Final sessionID:', req.sessionID);
+  });
+  next();
+});
+
 function loadAccounts() {
   try {
     if (!fs.existsSync(ACCOUNTS_FILE)) {
@@ -300,7 +318,6 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.name = user.name;
-    req.session.touch(); // Mark session as modified
 
     console.log('✅ Login successful for user:', user.username);
     console.log('📌 Session ID before save:', req.sessionID);
@@ -310,13 +327,15 @@ app.post('/login', async (req, res) => {
     req.session.save((err) => {
       if (err) {
         console.error('❌ Session save error:', err);
+        console.error('Session save error details:', err.stack);
         return res.status(500).render('login', { error: 'Session error occurred' });
       }
       console.log('✅ Session saved callback fired');
       console.log('📌 Session data AFTER persistence:', { userId: req.session.userId, username: req.session.username });
       console.log('📌 Session ID after save:', req.sessionID);
+      console.log('📌 Response headers before redirect:', res.getHeaders());
       console.log('📍 Redirecting to /dashboard');
-      return res.redirect('/dashboard');
+      res.redirect('/dashboard');
     });
   } catch (err) {
     console.error('Login error:', err);
