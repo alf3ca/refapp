@@ -43,19 +43,30 @@ app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-app.use(
-  session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      maxAge: 2 * 60 * 60 * 1000,
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax'
-    }
-  })
-);
+// Store sessions on disk in production to persist across restarts
+const sessionOptions = {
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 2 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  }
+};
+
+// Use file-based session store instead of default MemoryStore
+const SessionFileStore = require('session-file-store')(session);
+const sessionStore = new SessionFileStore({
+  dir: path.join(__dirname, 'sessions'),
+  ttl: 7200 // 2 hours
+});
+
+app.use(session({
+  ...sessionOptions,
+  store: sessionStore
+}));
 
 function loadAccounts() {
   try {
