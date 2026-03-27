@@ -61,17 +61,13 @@ let sessionStore;
 
 if (process.env.DATABASE_URL) {
   // Use PostgreSQL session store for production
-  const { Pool } = require('pg');
-  const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-  
+  // Share the same pool from db-pg.js to ensure proper connection handling
   const PgSession = require('connect-pg-simple')(session);
   sessionStore = new PgSession({
-    pool: pgPool,
+    pool: db.pool,
     tableName: 'session',
-    createTableIfMissing: true
+    createTableIfMissing: true,
+    ttl: 2 * 60 * 60 // 2 hours
   });
   console.log('📊 Using PostgreSQL for sessions');
 } else {
@@ -235,7 +231,7 @@ function findByEmail(accounts, email) {
   );
 }
 
-function requireLogin(req, res, next) {
+async function requireLogin(req, res, next) {
   console.log('🔍 requireLogin check:', {
     hasSessionId: !!req.session.userId,
     sessionId: req.session.userId,
@@ -249,20 +245,17 @@ function requireLogin(req, res, next) {
   
   // Load user data to ensure it's current
   try {
-    Promise.resolve(db.getUserById(req.session.userId)).then(user => {
-      if (!user) {
-        console.log('❌ User not found in accounts - destroying session and redirecting to /');
-        req.session.destroy();
-        return res.redirect('/');
-      }
-      
-      req.session.user = user;
-      console.log('✅ Session valid for user:', user.username);
-      return next();
-    }).catch(err => {
-      console.error('Error in requireLogin:', err);
-      return res.status(500).send('An error occurred');
-    });
+    const user = await Promise.resolve(db.getUserById(req.session.userId));
+    
+    if (!user) {
+      console.log('❌ User not found in accounts - destroying session and redirecting to /');
+      req.session.destroy();
+      return res.redirect('/');
+    }
+    
+    req.session.user = user;
+    console.log('✅ Session valid for user:', user.username);
+    return next();
   } catch (err) {
     console.error('Error in requireLogin:', err);
     return res.status(500).send('An error occurred');
