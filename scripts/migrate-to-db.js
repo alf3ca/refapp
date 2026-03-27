@@ -12,7 +12,7 @@ const db = require('../lib/db');
 
 const ACCOUNTS_FILE = path.join(__dirname, '..', 'accounts.json');
 
-async function migrateAccounts() {
+function migrateAccounts() {
   console.log('🔄 Starting migration from JSON to SQLite...');
   
   try {
@@ -35,16 +35,13 @@ async function migrateAccounts() {
     // Initialize database
     db.initializeDatabase();
 
-    // Wait a moment for db to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     let successCount = 0;
     let skipCount = 0;
 
     for (const referee of referees) {
       try {
         // Check if user already exists
-        const existing = await db.getUserByUsername(referee.username);
+        const existing = db.getUserByUsername(referee.username);
         if (existing) {
           console.log(`⏭️  Skipping ${referee.username} - already exists`);
           skipCount++;
@@ -52,33 +49,23 @@ async function migrateAccounts() {
         }
 
         // Hash the password
-        const passwordHash = await new Promise((resolve, reject) => {
-          bcrypt.hash(referee.password, 10, (err, hash) => {
-            if (err) reject(err);
-            else resolve(hash);
-          });
-        });
+        const passwordHash = bcrypt.hashSync(referee.password, 10);
 
         // Create user record directly with passwordHash
-        const db_instance = db.getDb();
-        const query = `
+        const database = db.getDb();
+        const stmt = database.prepare(`
           INSERT INTO users (username, email, passwordHash, name, experience, createdAt)
           VALUES (?, ?, ?, ?, ?, ?)
-        `;
+        `);
 
-        await new Promise((resolve, reject) => {
-          db_instance.run(query, [
-            referee.username,
-            referee.email,
-            passwordHash,
-            referee.name,
-            referee.experience || 'Not specified',
-            referee.createdAt || new Date().toISOString()
-          ], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
+        stmt.run(
+          referee.username,
+          referee.email,
+          passwordHash,
+          referee.name,
+          referee.experience || 'Not specified',
+          referee.createdAt || new Date().toISOString()
+        );
 
         console.log(`✅ Migrated: ${referee.username}`);
         successCount++;

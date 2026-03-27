@@ -210,20 +210,17 @@ function requireLogin(req, res, next) {
   
   // Load user data to ensure it's current
   try {
-    db.getUserById(req.session.userId).then((user) => {
-      if (!user) {
-        console.log('❌ User not found in accounts - destroying session and redirecting to /');
-        req.session.destroy();
-        return res.redirect('/');
-      }
-      
-      req.session.user = user;
-      console.log('✅ Session valid for user:', user.username);
-      return next();
-    }).catch((err) => {
-      console.error('Error in requireLogin:', err);
-      return res.status(500).send('An error occurred');
-    });
+    const user = db.getUserById(req.session.userId);
+    
+    if (!user) {
+      console.log('❌ User not found in accounts - destroying session and redirecting to /');
+      req.session.destroy();
+      return res.redirect('/');
+    }
+    
+    req.session.user = user;
+    console.log('✅ Session valid for user:', user.username);
+    return next();
   } catch (err) {
     console.error('Error in requireLogin:', err);
     return res.status(500).send('An error occurred');
@@ -241,7 +238,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   try {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -250,14 +247,14 @@ app.post('/login', async (req, res) => {
       return res.status(400).render('login', { error: 'Username and password required' });
     }
 
-    const user = await db.getUserByUsername(username);
+    const user = db.getUserByUsername(username);
 
     if (!user) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
     // Verify hashed password
-    const isValidPassword = await db.verifyPassword(password, user.passwordHash);
+    const isValidPassword = db.verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
@@ -279,7 +276,7 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
   try {
     const name = (req.body.name || '').trim();
     const username = (req.body.username || '').trim();
@@ -319,7 +316,7 @@ app.post('/register', async (req, res) => {
     }
 
     try {
-      const newUser = await db.createUser({
+      const newUser = db.createUser({
         username,
         email,
         name,
@@ -340,13 +337,13 @@ app.post('/register', async (req, res) => {
 });
 
 // API endpoints for real-time validation
-app.get('/api/check-username', async (req, res) => {
+app.get('/api/check-username', (req, res) => {
   try {
     const username = (req.query.username || '').trim();
     if (username.length < 3) {
       return res.json({ available: false });
     }
-    const available = await db.checkUsernameAvailability(username);
+    const available = db.checkUsernameAvailability(username);
     res.json({ available });
   } catch (err) {
     console.error('Username check error:', err);
@@ -354,13 +351,13 @@ app.get('/api/check-username', async (req, res) => {
   }
 });
 
-app.get('/api/check-email', async (req, res) => {
+app.get('/api/check-email', (req, res) => {
   try {
     const email = (req.query.email || '').trim();
     if (!email.includes('@')) {
       return res.json({ available: false });
     }
-    const available = await db.checkEmailAvailability(email);
+    const available = db.checkEmailAvailability(email);
     res.json({ available });
   } catch (err) {
     console.error('Email check error:', err);
@@ -368,8 +365,8 @@ app.get('/api/check-email', async (req, res) => {
   }
 });
 
-app.get('/dashboard', requireLogin, async (req, res) => {
-  const user = await db.getUserById(req.session.userId);
+app.get('/dashboard', requireLogin, (req, res) => {
+  const user = db.getUserById(req.session.userId);
   const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
@@ -419,7 +416,6 @@ app.get('/dashboard', requireLogin, async (req, res) => {
 
   return res.render('dashboard', {
     user,
-    allUsers: accounts,
     summary: {
       nextMatch,
       weekFixtures,
@@ -431,8 +427,8 @@ app.get('/dashboard', requireLogin, async (req, res) => {
   });
 });
 
-app.get('/my-games', requireLogin, async (req, res) => {
-  const user = await db.getUserById(req.session.userId);
+app.get('/my-games', requireLogin, (req, res) => {
+  const user = db.getUserById(req.session.userId);
   const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
@@ -468,8 +464,8 @@ app.get('/games/new', requireLogin, (req, res) => {
   });
 });
 
-app.get('/profile', requireLogin, async (req, res) => {
-  const user = await db.getUserById(req.session.userId);
+app.get('/profile', requireLogin, (req, res) => {
+  const user = db.getUserById(req.session.userId);
 
   if (!user) {
     req.session.destroy(() => {});
@@ -481,16 +477,16 @@ app.get('/profile', requireLogin, async (req, res) => {
 
 
 
-app.post('/api/update-profile', requireLogin, async (req, res) => {
+app.post('/api/update-profile', requireLogin, (req, res) => {
   const { name, experience } = req.body;
-  const user = await db.getUserById(req.session.userId);
+  const user = db.getUserById(req.session.userId);
 
   if (!user) {
     return res.status(404).json({ error: 'Referee not found' });
   }
 
   try {
-    await db.updateUser(req.session.userId, {
+    db.updateUser(req.session.userId, {
       name: name && String(name).trim(),
       experience: experience !== undefined ? String(experience).trim() : user.experience
     });
