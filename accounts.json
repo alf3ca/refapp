@@ -1,14 +1,3 @@
 {
-  "users": [
-    {
-      "id": 1,
-      "username": "alexsmith",
-      "email": "alex@example.com",
-      "name": "Alex Smith",
-      "passwordHash": "$2b$10$GsoymP0aEe/qKSCp0dSGNeJgzcWUotAJG98jAWgngHGpd..gh0bfK",
-      "experience": "3 years",
-      "createdAt": "2026-03-27T20:14:40.175Z",
-      "updatedAt": "2026-03-27T20:14:40.179Z"
-    }
-  ]
+  "users": []
 }
