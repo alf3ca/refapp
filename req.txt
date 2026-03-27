@@ -1,4 +1,0 @@
-Home Team : A drop down having the option to add a new team or select from a previous one already added.
-Away Team : A drop down having the option to add a new team or select from a previous one already added.
-Venue : A drop down having the option to add a new venue or select from a previous one already added.
-Age group : A drop down having the option from U7 to U21
