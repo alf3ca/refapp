@@ -6,8 +6,8 @@ const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { scrapeCentreCircleFixtures, convertToGameFormat } = require('./lib/centreCircleScraper');
-// Use PostgreSQL database module if DATABASE_URL is set, otherwise use SQLite
-const db = process.env.DATABASE_URL ? require('./lib/db-pg') : require('./lib/db');
+// Use JSON file-based database
+const db = require('./lib/db-json');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,7 +48,7 @@ app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Store sessions - use PostgreSQL when available, otherwise file-based
+// Store sessions - use file-based sessions
 const sessionOptions = {
   secret: SESSION_SECRET,
   resave: true,  // Always save, even if unmodified
@@ -56,49 +56,27 @@ const sessionOptions = {
   cookie: {
     maxAge: 2 * 60 * 60 * 1000,
     httpOnly: true,
-    // On Render with proxy: trust proxy + secure means browser gets HTTPS but app sees HTTP
-    // This allows express-session to set cookies that work through the proxy
-    secure: process.env.DATABASE_URL ? true : false,
+    secure: false,  // Set to true if using HTTPS only
     sameSite: 'lax'
   }
 };
 
 let sessionStore;
 
-if (process.env.DATABASE_URL) {
-  // Use PostgreSQL session store for production
-  // Share the same pool from db-pg.js to ensure proper connection handling
-  const PgSession = require('connect-pg-simple')(session);
-  sessionStore = new PgSession({
-    pool: db.pool,
-    tableName: 'session',
-    createTableIfMissing: true,
-    ttl: 2 * 60 * 60 // 2 hours
-  });
-  
-  // Log session store errors
-  sessionStore.on('error', (err) => {
-    console.error('❌ Session store error:', err);
-  });
-  
-  console.log('📊 Using PostgreSQL for sessions');
-  console.log('📊 Session store pool:', db.pool ? '✅ Pool available' : '❌ Pool not available');
-} else {
-  // Use file-based session store for development
-  const sessionsDir = path.join(__dirname, 'sessions');
-  if (!fs.existsSync(sessionsDir)) {
-    fs.mkdirSync(sessionsDir, { recursive: true });
-    console.log('📁 Created sessions directory:', sessionsDir);
-  }
-  
-  const SessionFileStore = require('session-file-store')(session);
-  sessionStore = new SessionFileStore({
-    dir: sessionsDir,
-    ttl: 7200,
-    reapInterval: 3600
-  });
-  console.log('📁 Using file-based sessions');
+// Use file-based session store
+const sessionsDir = path.join(__dirname, 'sessions');
+if (!fs.existsSync(sessionsDir)) {
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  console.log('📁 Created sessions directory:', sessionsDir);
 }
+
+const SessionFileStore = require('session-file-store')(session);
+sessionStore = new SessionFileStore({
+  dir: sessionsDir,
+  ttl: 7200,
+  reapInterval: 3600
+});
+console.log('📁 Using file-based sessions');
 
 app.use(session({
   ...sessionOptions,
@@ -1340,7 +1318,7 @@ app.listen(PORT, "0.0.0.0", async () => {
   try {
     await Promise.resolve(db.initializeDatabase());
     console.log(`✅ Server running on ${PORT}`);
-    console.log(`📊 Database mode: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
+    console.log(`📊 Database mode: JSON file-based (accounts.json)`);
   } catch (err) {
     console.error('❌ Failed to start server:', err);
     process.exit(1);
