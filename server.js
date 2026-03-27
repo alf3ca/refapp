@@ -6,7 +6,8 @@ const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { scrapeCentreCircleFixtures, convertToGameFormat } = require('./lib/centreCircleScraper');
-const db = require('./lib/db');
+// Use PostgreSQL database module if DATABASE_URL is set, otherwise use SQLite
+const db = process.env.DATABASE_URL ? require('./lib/db-pg') : require('./lib/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -229,17 +230,20 @@ function requireLogin(req, res, next) {
   
   // Load user data to ensure it's current
   try {
-    const user = db.getUserById(req.session.userId);
-    
-    if (!user) {
-      console.log('❌ User not found in accounts - destroying session and redirecting to /');
-      req.session.destroy();
-      return res.redirect('/');
-    }
-    
-    req.session.user = user;
-    console.log('✅ Session valid for user:', user.username);
-    return next();
+    Promise.resolve(db.getUserById(req.session.userId)).then(user => {
+      if (!user) {
+        console.log('❌ User not found in accounts - destroying session and redirecting to /');
+        req.session.destroy();
+        return res.redirect('/');
+      }
+      
+      req.session.user = user;
+      console.log('✅ Session valid for user:', user.username);
+      return next();
+    }).catch(err => {
+      console.error('Error in requireLogin:', err);
+      return res.status(500).send('An error occurred');
+    });
   } catch (err) {
     console.error('Error in requireLogin:', err);
     return res.status(500).send('An error occurred');
@@ -257,7 +261,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   try {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -266,14 +270,14 @@ app.post('/login', (req, res) => {
       return res.status(400).render('login', { error: 'Username and password required' });
     }
 
-    const user = db.getUserByUsername(username);
+    const user = await Promise.resolve(db.getUserByUsername(username));
 
     if (!user) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
     // Verify hashed password
-    const isValidPassword = db.verifyPassword(password, user.passwordHash);
+    const isValidPassword = db.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
@@ -295,7 +299,7 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const name = (req.body.name || '').trim();
     const username = (req.body.username || '').trim();
@@ -335,13 +339,13 @@ app.post('/register', (req, res) => {
     }
 
     try {
-      const newUser = db.createUser({
+      const newUser = await Promise.resolve(db.createUser({
         username,
         email,
         name,
         experience,
         password
-      });
+      }));
 
       console.log('✅ User registered:', newUser.username);
       return res.redirect('/login?registered=1');
@@ -356,13 +360,13 @@ app.post('/register', (req, res) => {
 });
 
 // API endpoints for real-time validation
-app.get('/api/check-username', (req, res) => {
+app.get('/api/check-username', async (req, res) => {
   try {
     const username = (req.query.username || '').trim();
     if (username.length < 3) {
       return res.json({ available: false });
     }
-    const available = db.checkUsernameAvailability(username);
+    const available = await Promise.resolve(db.checkUsernameAvailability(username));
     res.json({ available });
   } catch (err) {
     console.error('Username check error:', err);
@@ -370,13 +374,13 @@ app.get('/api/check-username', (req, res) => {
   }
 });
 
-app.get('/api/check-email', (req, res) => {
+app.get('/api/check-email', async (req, res) => {
   try {
-    const email = (req.query.email || '').trim();
+    const email = (req.query.email|| '').trim();
     if (!email.includes('@')) {
       return res.json({ available: false });
     }
-    const available = db.checkEmailAvailability(email);
+    const available = await Promise.resolve(db.checkEmailAvailability(email));
     res.json({ available });
   } catch (err) {
     console.error('Email check error:', err);
@@ -1216,7 +1220,13 @@ app.get('/debug/db-status', (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  db.initializeDatabase();
-  console.log(`Server running on ${PORT}`);
+app.listen(PORT, "0.0.0.0", async () => {
+  try {
+    await Promise.resolve(db.initializeDatabase());
+    console.log(`✅ Server running on ${PORT}`);
+    console.log(`📊 Database mode: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
+  } catch (err) {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
 });
