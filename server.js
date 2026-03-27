@@ -1162,6 +1162,23 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Debug endpoint to check database status (remove in production)
+app.get('/debug/db-status', (req, res) => {
+  try {
+    const database = db.getDb();
+    const users = database.prepare('SELECT COUNT(*) as count FROM users').get();
+    const allUsers = database.prepare('SELECT id, username, email FROM users LIMIT 10').all();
+    res.json({
+      totalUsers: users.count,
+      sampleUsers: allUsers,
+      nodeEnv: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   db.initializeDatabase();
   console.log(`Server running on ${PORT}`);
