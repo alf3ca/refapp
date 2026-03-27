@@ -8,6 +8,33 @@
       "experience": "2 years",
       "password": "password123",
       "createdAt": "2026-03-27T11:16:04.753Z"
+    },
+    {
+      "id": 2,
+      "username": "johndoe",
+      "email": "john@example.com",
+      "name": "John Doe",
+      "experience": "5 years",
+      "password": "password123",
+      "createdAt": "2026-03-27T13:38:10.531Z"
+    },
+    {
+      "id": 3,
+      "username": "testtest",
+      "email": "user@test.com",
+      "name": "test",
+      "experience": "Not specified",
+      "password": "password",
+      "createdAt": "2026-03-27T13:39:54.065Z"
+    },
+    {
+      "id": 4,
+      "username": "thisisatest",
+      "email": "thisisatest@test.com",
+      "name": "testing",
+      "experience": "Not specified",
+      "password": "password",
+      "createdAt": "2026-03-27T13:47:25.716Z"
     }
   ]
 }
