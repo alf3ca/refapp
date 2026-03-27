@@ -19,7 +19,7 @@
         </nav>
 
         <div class="welcome-banner">
-            <h1>Welcome, <%= user.name || user.username %>! 🏆</h1>
+            <h1>Welcome, <%= user.name || user.username || 'User' %>! 🏆</h1>
             <p>Your match performance hub — track fixtures, development, and records</p>
         </div>
 
@@ -88,7 +88,7 @@
                 <div class="dashboard-card">
                 <h2>👤 Profile & Settings</h2>
                 <div class="card-content">
-                    <p><strong>Name:</strong> <%= user.name || user.username %></p>
+                    <p><strong>Name:</strong> <%= user.name || user.username || 'User' %></p>
                     <p><strong>Email:</strong> <%= user.email %></p>
                     <p><strong>Experience:</strong> <%= user.experience %></p>
                     <a href="/profile" class="btn-secondary">Update Profile</a>
