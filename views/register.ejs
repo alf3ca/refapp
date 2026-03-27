@@ -105,7 +105,7 @@
                     <div id="passwordMatch"></div>
                 </div>
 
-                <button type="submit" class="btn-login" id="submitBtn" disabled>Create Account</button>
+                <button type="submit" class="btn-login" id="submitBtn">Create Account</button>
             </form>
 
             <div class="auth-footer">
@@ -175,8 +175,10 @@
 
     <script>
         const form = document.getElementById('registerForm');
+        const nameInput = document.getElementById('name');
         const usernameInput = document.getElementById('username');
         const emailInput = document.getElementById('email');
+        const experienceInput = document.getElementById('experience');
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirmPassword');
         const submitBtn = document.getElementById('submitBtn');
@@ -292,9 +294,10 @@
         }
 
         function updateSubmitBtn() {
+            // Just for showing validation status, but don't disable the button
+            // Let server handle final validation
             const passwordsMatch = passwordInput.value === confirmPasswordInput.value && passwordInput.value.length > 0;
-            const allValid = usernameAvailable && emailAvailable && passwordsMatch;
-            submitBtn.disabled = !allValid;
+            // submitBtn.disabled = !allValid;  // Commented out - button always enabled
         }
 
         function debounce(fn, delay) {
@@ -307,15 +310,51 @@
 
         // Form submission
         form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
             // Validate one more time before submit
             if (passwordInput.value !== confirmPasswordInput.value) {
-                e.preventDefault();
                 alert('Passwords do not match');
                 return;
             }
 
-            // Allow form to submit normally to the server
-            // Don't prevent default - let the form POST to /register
+            // Submit as JSON via fetch
+            const formData = {
+                name: nameInput.value,
+                username: usernameInput.value,
+                email: emailInput.value,
+                password: passwordInput.value,
+                confirmPassword: confirmPasswordInput.value,
+                experience: experienceInput.value
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(res => {
+                if (res.redirected) {
+                    window.location.href = res.url;
+                } else if (res.ok) {
+                    window.location.href = '/login?registered=1';
+                } else {
+                    return res.text().then(html => {
+                        document.body.innerHTML = html;
+                    });
+                }
+            })
+            .catch(err => {
+                console.error('Registration error:', err);
+                alert('An error occurred during registration');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            });
         });
     </script>
 </body>
