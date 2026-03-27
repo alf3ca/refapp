@@ -257,7 +257,7 @@ async function requireLogin(req, res, next) {
   
   // Load user data to ensure it's current
   try {
-    const user = await Promise.resolve(db.getUserById(req.session.userId));
+    const user = db.getUserById(req.session.userId);
     
     if (!user) {
       console.log('❌ User not found in accounts - destroying session and redirecting to /');
@@ -294,7 +294,7 @@ app.post('/login', async (req, res) => {
       return res.status(400).render('login', { error: 'Username and password required' });
     }
 
-    const user = await Promise.resolve(db.getUserByUsername(username));
+    const user = db.getUserByUsername(username);
 
     if (!user) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
@@ -390,13 +390,13 @@ app.post('/register', async (req, res) => {
     }
 
     try {
-      const newUser = await Promise.resolve(db.createUser({
+      const newUser = db.createUser({
         username,
         email,
         name,
         experience,
         password
-      }));
+      });
 
       console.log('✅ User registered:', newUser.username);
       return res.redirect('/login?registered=1');
@@ -417,7 +417,7 @@ app.get('/api/check-username', async (req, res) => {
     if (username.length < 3) {
       return res.json({ available: false });
     }
-    const available = await Promise.resolve(db.checkUsernameAvailability(username));
+    const available = db.checkUsernameAvailability(username);
     res.json({ available });
   } catch (err) {
     console.error('Username check error:', err);
@@ -431,7 +431,7 @@ app.get('/api/check-email', async (req, res) => {
     if (!email.includes('@')) {
       return res.json({ available: false });
     }
-    const available = await Promise.resolve(db.checkEmailAvailability(email));
+    const available = db.checkEmailAvailability(email);
     res.json({ available });
   } catch (err) {
     console.error('Email check error:', err);
@@ -1316,7 +1316,7 @@ app.get('/debug/db-status', async (req, res) => {
 
 app.listen(PORT, "0.0.0.0", async () => {
   try {
-    await Promise.resolve(db.initializeDatabase());
+    db.initializeDatabase();
     console.log(`✅ Server running on ${PORT}`);
     console.log(`📊 Database mode: JSON file-based (accounts.json)`);
   } catch (err) {
