@@ -56,11 +56,19 @@ const sessionOptions = {
   }
 };
 
+// Create sessions directory if it doesn't exist
+const sessionsDir = path.join(__dirname, 'sessions');
+if (!fs.existsSync(sessionsDir)) {
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  console.log('📁 Created sessions directory:', sessionsDir);
+}
+
 // Use file-based session store instead of default MemoryStore
 const SessionFileStore = require('session-file-store')(session);
 const sessionStore = new SessionFileStore({
-  dir: path.join(__dirname, 'sessions'),
-  ttl: 7200 // 2 hours
+  dir: sessionsDir,
+  ttl: 7200, // 2 hours
+  reapInterval: 3600 // Clean up every hour
 });
 
 app.use(session({
