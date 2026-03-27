@@ -5,7 +5,6 @@ const fs = require('fs');
 const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
-const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -238,7 +237,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   try {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -256,10 +255,8 @@ app.post('/login', async (req, res) => {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
-    // Compare hashed password
-    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-
-    if (!passwordMatch) {
+    // Compare plain text password
+    if (password !== user.password) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
@@ -280,7 +277,7 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
   try {
     const name = (req.body.name || '').trim();
     const username = (req.body.username || '').trim();
@@ -316,16 +313,13 @@ app.post('/register', async (req, res) => {
       return res.status(409).render('register', { error: 'Email already already registered' });
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
     const newUser = {
       id: getNextId(accounts),
       username,
       email,
       name,
       experience,
-      passwordHash,
+      password,
       createdAt: new Date().toISOString()
     };
 

@@ -3,29 +3,11 @@
     {
       "id": 1,
       "username": "testuser",
-      "email": "test@example.com",
+      "email": "test@test.com",
       "name": "Test User",
-      "experience": "5 years",
-      "passwordHash": "$2b$10$FXAiw7rH4Lr.Uvre7JX5S.hZkZhT01ZJs6h4NOWR7uiob1vjkf/mq",
-      "createdAt": "2026-03-26T18:55:02.784Z"
-    },
-    {
-      "id": 2,
-      "username": "johndoe",
-      "email": "john@example.com",
-      "name": "John Doe",
       "experience": "2 years",
-      "passwordHash": "$2b$10$i.CD.TdsRasAJk7Ozj0vtu6IiHjDlPc.Cy8cZBhcPtGk1/7dd6AIe",
-      "createdAt": "2026-03-26T18:56:30.973Z"
-    },
-    {
-      "id": 3,
-      "username": "sarahwilson",
-      "email": "sarah@example.com",
-      "name": "Sarah Wilson",
-      "experience": "1 year",
-      "passwordHash": "$2b$10$X8FELNp6goD6K36XoFuZ4OX648K8mG3RzU2MghVF7rMSoncAAIqYm",
-      "createdAt": "2026-03-27T11:07:48.301Z"
+      "password": "password123",
+      "createdAt": "2026-03-27T11:16:04.753Z"
     }
   ]
 }
