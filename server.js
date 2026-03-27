@@ -12,6 +12,10 @@ const db = process.env.DATABASE_URL ? require('./lib/db-pg') : require('./lib/db
 const app = express();
 const PORT = process.env.PORT || 5000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'default-dev-secret-change-me';
+
+// Trust Render's proxy for HTTPS cookies
+app.set('trust proxy', 1);
+
 const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
 const GAMES_FILE = path.join(__dirname, 'games.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -52,7 +56,9 @@ const sessionOptions = {
   cookie: {
     maxAge: 2 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // On Render with proxy: trust proxy + secure means browser gets HTTPS but app sees HTTP
+    // This allows express-session to set cookies that work through the proxy
+    secure: process.env.DATABASE_URL ? true : false,
     sameSite: 'lax'
   }
 };
