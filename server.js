@@ -1282,7 +1282,9 @@ app.listen(PORT, "0.0.0.0", async () => {
   try {
     db.initializeDatabase();
     console.log(`✅ Server running on ${PORT}`);
-    console.log(`📊 Database mode: JSON file-based (accounts.json)`);
+    const location = process.env.NODE_ENV === 'production' ? '📁 Render persistent disk: /mnt/data/accounts.json' : '📁 Local: accounts.json';
+    console.log(`📊 Database: JSON file-based`);
+    console.log(`${location}`);
   } catch (err) {
     console.error('❌ Failed to start server:', err);
     process.exit(1);

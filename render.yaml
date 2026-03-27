@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: refapp
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+    mounts:
+      - path: /mnt/data
+        diskName: refapp-data
+        diskSizeGB: 1
