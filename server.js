@@ -315,27 +315,39 @@ app.post('/login', async (req, res) => {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.name = user.name;
-
-    console.log('✅ Login successful for user:', user.username);
-    console.log('📌 Session ID before save:', req.sessionID);
-    console.log('📌 Session data BEFORE persistence:', { userId: req.session.userId, username: req.session.username });
-    
-    // Explicitly save session before redirecting
-    req.session.save((err) => {
+    // IMPORTANT: Regenerate session to discard old session ID
+    req.session.regenerate((err) => {
       if (err) {
-        console.error('❌ Session save error:', err);
-        console.error('Session save error details:', err.stack);
+        console.error('❌ Session regenerate error:', err);
         return res.status(500).render('login', { error: 'Session error occurred' });
       }
-      console.log('✅ Session saved callback fired');
-      console.log('📌 Session data AFTER persistence:', { userId: req.session.userId, username: req.session.username });
-      console.log('📌 Session ID after save:', req.sessionID);
-      console.log('📌 Response headers before redirect:', res.getHeaders());
-      console.log('📍 Redirecting to /dashboard');
-      res.redirect('/dashboard');
+      
+      console.log('✅ Session regenerated');
+      console.log('📌 New Session ID:', req.sessionID);
+      
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.name = user.name;
+
+      console.log('✅ Login successful for user:', user.username);
+      console.log('📌 Session ID before save:', req.sessionID);
+      console.log('📌 Session data BEFORE persistence:', { userId: req.session.userId, username: req.session.username });
+      
+      // Explicitly save the regenerated session before redirecting
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          console.error('❌ Error details:', err.stack);
+          console.error('❌ Session store type:', sessionStore.constructor.name);
+          return res.status(500).render('login', { error: 'Session error occurred' });
+        }
+        console.log('✅ Session saved callback fired');
+        console.log('📌 Session data AFTER persistence:', { userId: req.session.userId, username: req.session.username });
+        console.log('📌 Session ID after save:', req.sessionID);
+        console.log('📌 Response headers BEFORE redirect:', res.getHeaders());
+        console.log('📍 Calling res.redirect to /dashboard');
+        res.redirect('/dashboard');
+      });
     });
   } catch (err) {
     console.error('Login error:', err);
