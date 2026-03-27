@@ -69,7 +69,14 @@ if (process.env.DATABASE_URL) {
     createTableIfMissing: true,
     ttl: 2 * 60 * 60 // 2 hours
   });
+  
+  // Log session store errors
+  sessionStore.on('error', (err) => {
+    console.error('❌ Session store error:', err);
+  });
+  
   console.log('📊 Using PostgreSQL for sessions');
+  console.log('📊 Session store pool:', db.pool ? '✅ Pool available' : '❌ Pool not available');
 } else {
   // Use file-based session store for development
   const sessionsDir = path.join(__dirname, 'sessions');
@@ -1245,7 +1252,30 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// Debug endpoint to check database status (remove in production)
+// Debug endpoint to test manual session saving
+app.get('/debug/test-session', (req, res) => {
+  console.log('🧪 Testing session save...');
+  console.log('📌 Current sessionID before:', req.sessionID);
+  console.log('📌 Current session data:', req.session);
+  
+  req.session.testData = 'TEST_' + Date.now();
+  
+  req.session.save((err) => {
+    if (err) {
+      console.error('❌ Session save failed:', err);
+      return res.json({ error: 'Session save failed', details: err.message });
+    }
+    console.log('✅ Session saved!');
+    console.log('📤 Response headers:', res.getHeaders());
+    res.json({
+      status: 'Session saved',
+      sessionID: req.sessionID,
+      testData: req.session.testData,
+      headers: res.getHeaders(),
+      setCookie: res.getHeader('set-cookie')
+    });
+  });
+});
 app.get('/debug/db-status', async (req, res) => {
   try {
     const database = db.getDb();
