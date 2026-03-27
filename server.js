@@ -6,6 +6,7 @@ const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { scrapeCentreCircleFixtures, convertToGameFormat } = require('./lib/centreCircleScraper');
+const db = require('./lib/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -209,23 +210,24 @@ function requireLogin(req, res, next) {
   
   // Load user data to ensure it's current
   try {
-    const accounts = loadAccounts();
-    const user = accounts.find((acc) => acc.id === req.session.userId);
-    
-    if (!user) {
-      console.log('❌ User not found in accounts - destroying session and redirecting to /');
-      req.session.destroy();
-      return res.redirect('/');
-    }
-    
-    req.session.user = user;
-    console.log('✅ Session valid for user:', user.username);
+    db.getUserById(req.session.userId).then((user) => {
+      if (!user) {
+        console.log('❌ User not found in accounts - destroying session and redirecting to /');
+        req.session.destroy();
+        return res.redirect('/');
+      }
+      
+      req.session.user = user;
+      console.log('✅ Session valid for user:', user.username);
+      return next();
+    }).catch((err) => {
+      console.error('Error in requireLogin:', err);
+      return res.status(500).send('An error occurred');
+    });
   } catch (err) {
     console.error('Error in requireLogin:', err);
     return res.status(500).send('An error occurred');
   }
-  
-  return next();
 }
 
 app.get('/', (req, res) => {
@@ -239,7 +241,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   try {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -248,17 +250,15 @@ app.post('/login', (req, res) => {
       return res.status(400).render('login', { error: 'Username and password required' });
     }
 
-    const accounts = loadAccounts();
-    const user = accounts.find(
-      (account) => account.username.toLowerCase() === username.toLowerCase()
-    );
+    const user = await db.getUserByUsername(username);
 
     if (!user) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
-    // Compare plain text password
-    if (password !== user.password) {
+    // Verify hashed password
+    const isValidPassword = await db.verifyPassword(password, user.passwordHash);
+    if (!isValidPassword) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
@@ -279,16 +279,17 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const name = (req.body.name || '').trim();
     const username = (req.body.username || '').trim();
     const email = (req.body.email || '').trim();
     const experience = (req.body.experience || '').trim() || 'Not specified';
     const password = (req.body.password || '').trim();
+    const confirmPassword = (req.body.confirmPassword || '').trim();
 
     // Input validation
-    if (!name || !username || !email || !password) {
+    if (!name || !username || !email || !password || !confirmPassword) {
       return res.status(400).render('register', { error: 'All required fields must be filled' });
     }
 
@@ -296,8 +297,20 @@ app.post('/register', (req, res) => {
       return res.status(400).render('register', { error: 'Username must be at least 3 characters' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).render('register', { error: 'Password must be at least 6 characters' });
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return res.status(400).render('register', { error: 'Username can only contain letters, numbers, underscores, and hyphens' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).render('register', { error: 'Password must be at least 8 characters' });
+    }
+
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^a-zA-Z\d]/.test(password)) {
+      return res.status(400).render('register', { error: 'Password must contain uppercase, lowercase, number, and special character' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).render('register', { error: 'Passwords do not match' });
     }
 
     // Email validation (basic)
@@ -305,39 +318,58 @@ app.post('/register', (req, res) => {
       return res.status(400).render('register', { error: 'Invalid email format' });
     }
 
-    const accounts = loadAccounts();
+    try {
+      const newUser = await db.createUser({
+        username,
+        email,
+        name,
+        experience,
+        password
+      });
 
-    if (findByUsername(accounts, username)) {
-      return res.status(409).render('register', { error: 'Username already exists' });
+      console.log('✅ User registered:', newUser.username);
+      return res.redirect('/login?registered=1');
+    } catch (err) {
+      const errorMsg = err.message;
+      return res.status(409).render('register', { error: errorMsg });
     }
-
-    if (findByEmail(accounts, email)) {
-      return res.status(409).render('register', { error: 'Email already already registered' });
-    }
-
-    const newUser = {
-      id: getNextId(accounts),
-      username,
-      email,
-      name,
-      experience,
-      password,
-      createdAt: new Date().toISOString()
-    };
-
-    accounts.push(newUser);
-    saveAccounts(accounts);
-
-    return res.redirect('/login?registered=1');
   } catch (err) {
     console.error('Registration error:', err);
     return res.status(500).render('register', { error: 'An error occurred during registration' });
   }
 });
 
-app.get('/dashboard', requireLogin, (req, res) => {
-  const accounts = loadAccounts();
-  const user = accounts.find((account) => account.id === req.session.userId);
+// API endpoints for real-time validation
+app.get('/api/check-username', async (req, res) => {
+  try {
+    const username = (req.query.username || '').trim();
+    if (username.length < 3) {
+      return res.json({ available: false });
+    }
+    const available = await db.checkUsernameAvailability(username);
+    res.json({ available });
+  } catch (err) {
+    console.error('Username check error:', err);
+    res.status(500).json({ error: 'Error checking username' });
+  }
+});
+
+app.get('/api/check-email', async (req, res) => {
+  try {
+    const email = (req.query.email || '').trim();
+    if (!email.includes('@')) {
+      return res.json({ available: false });
+    }
+    const available = await db.checkEmailAvailability(email);
+    res.json({ available });
+  } catch (err) {
+    console.error('Email check error:', err);
+    res.status(500).json({ error: 'Error checking email' });
+  }
+});
+
+app.get('/dashboard', requireLogin, async (req, res) => {
+  const user = await db.getUserById(req.session.userId);
   const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
@@ -399,9 +431,8 @@ app.get('/dashboard', requireLogin, (req, res) => {
   });
 });
 
-app.get('/my-games', requireLogin, (req, res) => {
-  const accounts = loadAccounts();
-  const user = accounts.find((account) => account.id === req.session.userId);
+app.get('/my-games', requireLogin, async (req, res) => {
+  const user = await db.getUserById(req.session.userId);
   const gameData = loadUserGameData(req.session.userId);
 
   if (!user) {
@@ -437,9 +468,8 @@ app.get('/games/new', requireLogin, (req, res) => {
   });
 });
 
-app.get('/profile', requireLogin, (req, res) => {
-  const accounts = loadAccounts();
-  const user = accounts.find((account) => account.id === req.session.userId);
+app.get('/profile', requireLogin, async (req, res) => {
+  const user = await db.getUserById(req.session.userId);
 
   if (!user) {
     req.session.destroy(() => {});
@@ -451,22 +481,24 @@ app.get('/profile', requireLogin, (req, res) => {
 
 
 
-app.post('/api/update-profile', requireLogin, (req, res) => {
-  const { name, email, experience } = req.body;
-  const accounts = loadAccounts();
+app.post('/api/update-profile', requireLogin, async (req, res) => {
+  const { name, experience } = req.body;
+  const user = await db.getUserById(req.session.userId);
 
-  const account = accounts.find((item) => item.id === req.session.userId);
-
-  if (!account) {
+  if (!user) {
     return res.status(404).json({ error: 'Referee not found' });
   }
 
-  if (name) account.name = String(name).trim();
-  if (email) account.email = String(email).trim();
-  if (experience !== undefined) account.experience = String(experience).trim();
-
-  saveAccounts(accounts);
-  return res.json({ success: true, message: 'Profile updated successfully' });
+  try {
+    await db.updateUser(req.session.userId, {
+      name: name && String(name).trim(),
+      experience: experience !== undefined ? String(experience).trim() : user.experience
+    });
+    return res.json({ success: true, message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    return res.status(500).json({ error: 'Failed to update profile' });
+  }
 });
 
 function createMatchHandler(req, res) {
@@ -1135,5 +1167,6 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
+  db.initializeDatabase();
   console.log(`Server running on ${PORT}`);
 });
