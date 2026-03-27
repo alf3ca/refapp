@@ -25,9 +25,9 @@
 
             <div class="profile-card">
                 <div class="profile-header">
-                    <div class="profile-avatar"><%= user.name.charAt(0) %></div>
+                    <div class="profile-avatar"><%= (user.name || user.username).charAt(0) %></div>
                     <div class="profile-info">
-                        <h2><%= user.name %></h2>
+                        <h2><%= user.name || user.username %></h2>
                         <p>@<%= user.username %></p>
                     </div>
                 </div>
@@ -42,7 +42,7 @@
                                 type="text"
                                 id="name"
                                 name="name"
-                                value="<%= user.name %>"
+                                value="<%= user.name || '' %>"
                                 required
                             >
                         </div>
