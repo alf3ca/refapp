@@ -44,7 +44,7 @@ app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Store sessions on disk in production to persist across restarts
+// Store sessions - use PostgreSQL when available, otherwise file-based
 const sessionOptions = {
   secret: SESSION_SECRET,
   resave: false,
@@ -57,20 +57,39 @@ const sessionOptions = {
   }
 };
 
-// Create sessions directory if it doesn't exist
-const sessionsDir = path.join(__dirname, 'sessions');
-if (!fs.existsSync(sessionsDir)) {
-  fs.mkdirSync(sessionsDir, { recursive: true });
-  console.log('📁 Created sessions directory:', sessionsDir);
-}
+let sessionStore;
 
-// Use file-based session store instead of default MemoryStore
-const SessionFileStore = require('session-file-store')(session);
-const sessionStore = new SessionFileStore({
-  dir: sessionsDir,
-  ttl: 7200, // 2 hours
-  reapInterval: 3600 // Clean up every hour
-});
+if (process.env.DATABASE_URL) {
+  // Use PostgreSQL session store for production
+  const { Pool } = require('pg');
+  const pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  
+  const PgSession = require('connect-pg-simple')(session);
+  sessionStore = new PgSession({
+    pool: pgPool,
+    tableName: 'session',
+    createTableIfMissing: true
+  });
+  console.log('📊 Using PostgreSQL for sessions');
+} else {
+  // Use file-based session store for development
+  const sessionsDir = path.join(__dirname, 'sessions');
+  if (!fs.existsSync(sessionsDir)) {
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    console.log('📁 Created sessions directory:', sessionsDir);
+  }
+  
+  const SessionFileStore = require('session-file-store')(session);
+  sessionStore = new SessionFileStore({
+    dir: sessionsDir,
+    ttl: 7200,
+    reapInterval: 3600
+  });
+  console.log('📁 Using file-based sessions');
+}
 
 app.use(session({
   ...sessionOptions,
