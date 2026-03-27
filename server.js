@@ -195,7 +195,14 @@ function findByEmail(accounts, email) {
 }
 
 function requireLogin(req, res, next) {
+  console.log('🔍 requireLogin check:', {
+    hasSessionId: !!req.session.userId,
+    sessionId: req.session.userId,
+    headers: req.headers.cookie ? 'Cookies present' : 'NO COOKIES'
+  });
+
   if (!req.session.userId) {
+    console.log('❌ No session - redirecting to /');
     return res.redirect('/');
   }
   
@@ -205,11 +212,13 @@ function requireLogin(req, res, next) {
     const user = accounts.find((acc) => acc.id === req.session.userId);
     
     if (!user) {
+      console.log('❌ User not found in accounts - destroying session and redirecting to /');
       req.session.destroy();
       return res.redirect('/');
     }
     
     req.session.user = user;
+    console.log('✅ Session valid for user:', user.username);
   } catch (err) {
     console.error('Error in requireLogin:', err);
     return res.status(500).send('An error occurred');
@@ -258,6 +267,8 @@ app.post('/login', async (req, res) => {
     req.session.username = user.username;
     req.session.name = user.name;
 
+    console.log('✅ Login successful for user:', user.username);
+    console.log('📍 Redirecting to /dashboard');
     return res.redirect('/dashboard');
   } catch (err) {
     console.error('Login error:', err);
