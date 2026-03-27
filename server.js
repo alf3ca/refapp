@@ -306,8 +306,16 @@ app.post('/login', async (req, res) => {
     req.session.name = user.name;
 
     console.log('✅ Login successful for user:', user.username);
-    console.log('📍 Redirecting to /dashboard');
-    return res.redirect('/dashboard');
+    
+    // Explicitly save session before redirecting
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.status(500).render('login', { error: 'Session error occurred' });
+      }
+      console.log('📍 Redirecting to /dashboard');
+      return res.redirect('/dashboard');
+    });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).render('login', { error: 'An error occurred during login' });
