@@ -300,8 +300,8 @@ app.post('/login', async (req, res) => {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
 
-    // Verify hashed password
-    const isValidPassword = db.verifyPassword(password, user.password_hash);
+    // Verify hashed password (verifyPassword takes username, not hash)
+    const isValidPassword = db.verifyPassword(password, username);
     if (!isValidPassword) {
       return res.status(401).render('login', { error: 'Invalid credentials' });
     }
