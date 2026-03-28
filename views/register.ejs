@@ -20,7 +20,7 @@
                 <div class="form-group">
                     <label for="name">
                         Full Name
-                        <span class="info-icon" title="Your full name (required)">ℹ️</span>
+                        <span class="info-icon" title="Your full name (required)">i</span>
                     </label>
                     <input
                         type="text"
@@ -34,7 +34,7 @@
                 <div class="form-group">
                     <label for="username">
                         Username
-                        <span class="info-icon" title="Alphanumeric, 3+ characters">ℹ️</span>
+                        <span class="info-icon" title="Alphanumeric, 3+ characters">i</span>
                     </label>
                     <input
                         type="text"
@@ -52,7 +52,7 @@
                 <div class="form-group">
                     <label for="email">
                         Email
-                        <span class="info-icon" title="Valid email format required">ℹ️</span>
+                        <span class="info-icon" title="Valid email format required">i</span>
                     </label>
                     <input
                         type="email"
@@ -77,7 +77,7 @@
                 <div class="form-group">
                     <label for="password">
                         Password
-                        <span class="info-icon" title="8+ chars, uppercase, number, special char">ℹ️</span>
+                        <span class="info-icon" title="8+ chars, uppercase, number, special char">i</span>
                     </label>
                     <input
                         type="password"
@@ -93,7 +93,7 @@
                 <div class="form-group">
                     <label for="confirmPassword">
                         Confirm Password
-                        <span class="info-icon" title="Must match password above">ℹ️</span>
+                        <span class="info-icon" title="Must match password above">i</span>
                     </label>
                     <input
                         type="password"
@@ -170,6 +170,78 @@
 
         button:not(:disabled) {
             cursor: pointer;
+        }
+
+        /* ===== IMPROVED INFO ICON STYLING ===== */
+        .info-icon {
+            display: inline-block;
+            margin-left: 6px;
+            cursor: help;
+            font-size: 12px;
+            position: relative;
+            vertical-align: middle;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            background: white;
+            color: #2563eb;
+            border: 2px solid #2563eb;
+            border-radius: 50%;
+            font-weight: 700;
+            transition: all 0.3s ease, transform 0.2s ease;
+        }
+
+        .info-icon:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .info-icon::before {
+            content: attr(title);
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            letter-spacing: 0.3px;
+        }
+
+        .info-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #1f2937;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1000;
+        }
+
+        .info-icon:hover::before {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-6px);
+        }
+
+        .info-icon:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
 
