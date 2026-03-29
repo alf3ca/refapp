@@ -18,10 +18,7 @@
 
             <form id="registerForm" method="POST" action="/register">
                 <div class="form-group">
-                    <label for="name">
-                        Full Name
-                        <span class="info-icon" title="Your full name (required)">i</span>
-                    </label>
+                    <label for="name">Full Name</label>
                     <input
                         type="text"
                         id="name"
@@ -32,10 +29,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="username">
-                        Username
-                        <span class="info-icon" title="Alphanumeric, 3+ characters">i</span>
-                    </label>
+                    <label for="username">Username</label>
                     <input
                         type="text"
                         id="username"
@@ -50,10 +44,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="email">
-                        Email
-                        <span class="info-icon" title="Valid email format required">i</span>
-                    </label>
+                    <label for="email">Email</label>
                     <input
                         type="email"
                         id="email"
@@ -75,34 +66,23 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="password">
-                        Password
-                        <span class="info-icon" title="8+ chars, uppercase, number, special char">i</span>
-                    </label>
+                    <label for="password">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="password"
-                        required
                         placeholder="Create a password"
-                        minlength="8"
                     >
-                    <div id="passwordStrength" class="password-strength"></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="confirmPassword">
-                        Confirm Password
-                        <span class="info-icon" title="Must match password above">i</span>
-                    </label>
+                    <label for="confirmPassword">Confirm Password</label>
                     <input
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
-                        required
                         placeholder="Confirm your password"
                     >
-                    <div id="passwordMatch"></div>
                 </div>
 
                 <button type="submit" class="btn-login" id="submitBtn">Create Account</button>
@@ -115,29 +95,7 @@
     </div>
 
     <style>
-        .password-strength {
-            height: 4px;
-            margin-top: 4px;
-            border-radius: 2px;
-            display: none;
-        }
-
-        .password-strength.weak {
-            display: block;
-            background-color: #ff4444;
-        }
-
-        .password-strength.fair {
-            display: block;
-            background-color: #ffaa00;
-        }
-
-        .password-strength.good {
-            display: block;
-            background-color: #44aa44;
-        }
-
-        #usernameStatus, #emailStatus, #passwordMatch {
+        #usernameStatus, #emailStatus {
             margin-top: 4px;
             font-size: 12px;
             white-space: nowrap;
@@ -155,14 +113,6 @@
             color: #ff4444;
         }
 
-        .status-match {
-            color: #22aa22;
-        }
-
-        .status-mismatch {
-            color: #ff4444;
-        }
-
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -170,78 +120,6 @@
 
         button:not(:disabled) {
             cursor: pointer;
-        }
-
-        /* ===== IMPROVED INFO ICON STYLING ===== */
-        .info-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 6px;
-            cursor: help;
-            font-size: 12px;
-            position: relative;
-            vertical-align: middle;
-            width: 20px;
-            height: 20px;
-            background: white;
-            color: #2563eb;
-            border: 2px solid #2563eb;
-            border-radius: 50%;
-            font-weight: 700;
-            transition: all 0.3s ease, transform 0.2s ease;
-        }
-
-        .info-icon:hover {
-            transform: scale(1.15);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-        }
-
-        .info-icon::before {
-            content: attr(title);
-            position: absolute;
-            bottom: 130%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            color: white;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
-            z-index: 1000;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-            letter-spacing: 0.3px;
-        }
-
-        .info-icon::after {
-            content: '';
-            position: absolute;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: #1f2937;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-            z-index: 1000;
-        }
-
-        .info-icon:hover::before {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(-6px);
-        }
-
-        .info-icon:hover::after {
-            opacity: 1;
-            visibility: visible;
         }
     </style>
 
@@ -256,8 +134,6 @@
         const submitBtn = document.getElementById('submitBtn');
         const usernameStatus = document.getElementById('usernameStatus');
         const emailStatus = document.getElementById('emailStatus');
-        const passwordStrength = document.getElementById('passwordStrength');
-        const passwordMatch = document.getElementById('passwordMatch');
 
         let usernameAvailable = false;
         let emailAvailable = false;
@@ -268,7 +144,6 @@
             if (username.length < 3) {
                 usernameStatus.textContent = '';
                 usernameAvailable = false;
-                updateSubmitBtn();
                 return;
             }
 
@@ -285,7 +160,6 @@
                 console.error(err);
                 usernameStatus.textContent = '';
             }
-            updateSubmitBtn();
         }, 500));
 
         // Check email availability
@@ -294,7 +168,6 @@
             if (!email.includes('@')) {
                 emailStatus.textContent = '';
                 emailAvailable = false;
-                updateSubmitBtn();
                 return;
             }
 
@@ -311,66 +184,7 @@
                 console.error(err);
                 emailStatus.textContent = '';
             }
-            updateSubmitBtn();
         }, 500));
-
-        // Check password strength
-        passwordInput.addEventListener('input', (e) => {
-            const password = e.target.value;
-            const strength = getPasswordStrength(password);
-            
-            passwordStrength.textContent = '';
-            passwordStrength.className = 'password-strength';
-            
-            if (password.length > 0) {
-                passwordStrength.className = `password-strength ${strength}`;
-            }
-            checkPasswordMatch();
-            updateSubmitBtn();
-        });
-
-        // Check password match
-        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
-
-        function checkPasswordMatch() {
-            const password = passwordInput.value;
-            const confirm = confirmPasswordInput.value;
-            
-            if (confirm.length === 0) {
-                passwordMatch.textContent = '';
-                return;
-            }
-
-            if (password === confirm) {
-                passwordMatch.textContent = '✓ Passwords match';
-                passwordMatch.className = 'status-match';
-            } else {
-                passwordMatch.textContent = '✗ Passwords do not match';
-                passwordMatch.className = 'status-mismatch';
-            }
-            updateSubmitBtn();
-        }
-
-        function getPasswordStrength(password) {
-            if (password.length < 8) return 'weak';
-            
-            let score = 0;
-            if (/[a-z]/.test(password)) score++;
-            if (/[A-Z]/.test(password)) score++;
-            if (/\d/.test(password)) score++;
-            if (/[^a-zA-Z\d]/.test(password)) score++;
-
-            if (score <= 2) return 'weak';
-            if (score === 3) return 'fair';
-            return 'good';
-        }
-
-        function updateSubmitBtn() {
-            // Just for showing validation status, but don't disable the button
-            // Let server handle final validation
-            const passwordsMatch = passwordInput.value === confirmPasswordInput.value && passwordInput.value.length > 0;
-            // submitBtn.disabled = !allValid;  // Commented out - button always enabled
-        }
 
         function debounce(fn, delay) {
             let timeout;
@@ -383,12 +197,6 @@
         // Form submission
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Validate one more time before submit
-            if (passwordInput.value !== confirmPasswordInput.value) {
-                alert('Passwords do not match');
-                return;
-            }
 
             // Submit as JSON via fetch
             const formData = {
