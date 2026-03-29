@@ -191,111 +191,12 @@
       color: var(--text-light);
       font-size: 14px;
     }
-
-    /* Profile Dropdown Styles */
-    .profile-menu {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .profile-button {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .profile-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-
-    .dropdown-menu {
-      position: absolute;
-      top: 50px;
-      right: 0;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      min-width: 200px;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-10px);
-      transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
-    }
-
-    .dropdown-menu.active {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-
-    .dropdown-item {
-      display: block;
-      width: 100%;
-      padding: 12px 16px;
-      border: none;
-      background: none;
-      text-align: left;
-      cursor: pointer;
-      font-size: 14px;
-      color: var(--text-dark);
-      transition: background-color 0.2s;
-      text-decoration: none;
-    }
-
-    .dropdown-item:hover {
-      background-color: var(--bg-color);
-    }
-
-    .dropdown-item:first-child {
-      border-radius: 8px 8px 0 0;
-    }
-
-    .dropdown-item:last-child {
-      border-radius: 0 0 8px 8px;
-    }
-
-    .dropdown-divider {
-      height: 1px;
-      background-color: var(--border-color);
-      margin: 4px 0;
-    }
-
-    .dropdown-item.danger {
-      color: var(--error-color);
-    }
-
-    .dropdown-item.danger:hover {
-      background-color: #fee2e2;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <nav class="navbar">
       <a href="/dashboard" class="nav-brand">⚽ Referee Portal</a>
-      <div class="nav-menu">
-        <div class="profile-menu">
-          <button class="profile-button" id="profileBtn" title="Profile">👤</button>
-          <div class="dropdown-menu" id="dropdownMenu">
-            <a href="/profile" class="dropdown-item">🔧 My Profile</a>
-            <a href="/profile" class="dropdown-item">⚙️ Settings</a>
-            <div class="dropdown-divider"></div>
-            <a href="/logout" class="dropdown-item danger">🚪 Logout</a>
-          </div>
-        </div>
-      </div>
     </nav>
 
     <%- include('partials/side-menu'); %>
@@ -357,21 +258,6 @@
   </div>
 
   <script>
-    // Profile dropdown toggle
-    const profileBtn = document.getElementById('profileBtn');
-    const dropdownMenu = document.getElementById('dropdownMenu');
-
-    profileBtn.addEventListener('click', () => {
-      dropdownMenu.classList.toggle('active');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.profile-menu')) {
-        dropdownMenu.classList.remove('active');
-      }
-    });
-
     // Form submission
     document.getElementById('importForm').addEventListener('submit', async (e) => {
       e.preventDefault();
