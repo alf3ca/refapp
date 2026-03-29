@@ -258,6 +258,29 @@
   </div>
 
   <script>
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('quickLinksSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('hidden');
+        overlay.classList.toggle('visible');
+        sidebarToggle.classList.toggle('active');
+        sidebarToggle.setAttribute('aria-expanded', sidebar.classList.contains('hidden') ? 'false' : 'true');
+      });
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        sidebar.classList.add('hidden');
+        overlay.classList.remove('visible');
+        sidebarToggle.classList.remove('active');
+        sidebarToggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
     // Form submission
     document.getElementById('importForm').addEventListener('submit', async (e) => {
       e.preventDefault();
