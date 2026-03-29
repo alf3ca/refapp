@@ -326,10 +326,11 @@ app.post('/register', (req, res) => {
     const username = (req.body.username || '').trim();
     const email = (req.body.email || '').trim();
     const experience = (req.body.experience || '').trim() || 'Not specified';
-    const password = (req.body.password || '').trim() || 'default123';
+    const password = (req.body.password || '').trim();
+    const confirmPassword = (req.body.confirmPassword || '').trim();
 
     // Input validation
-    if (!name || !username || !email) {
+    if (!name || !username || !email || !password || !confirmPassword) {
       return res.status(400).render('register', { error: 'All required fields must be filled' });
     }
 
@@ -339,6 +340,10 @@ app.post('/register', (req, res) => {
 
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       return res.status(400).render('register', { error: 'Username can only contain letters, numbers, underscores, and hyphens' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).render('register', { error: 'Passwords do not match' });
     }
 
     // Email validation (basic)
