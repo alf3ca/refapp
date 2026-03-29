@@ -10,9 +10,10 @@
       max-width: 600px;
       margin: 40px auto;
       padding: 30px;
-      background: #f9fafb;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
     }
 
     .import-header {
@@ -23,11 +24,11 @@
     .import-header h1 {
       font-size: 28px;
       margin: 0 0 10px 0;
-      color: #1f2937;
+      color: var(--text-dark);
     }
 
     .import-header p {
-      color: #6b7280;
+      color: var(--text-light);
       margin: 0;
     }
 
@@ -39,49 +40,57 @@
       display: block;
       font-weight: 600;
       margin-bottom: 8px;
-      color: #374151;
+      color: var(--text-dark);
+      font-size: 14px;
     }
 
     .form-group input {
       width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
       font-size: 14px;
       font-family: inherit;
       box-sizing: border-box;
-      transition: border-color 0.2s;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
 
     .form-group input:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .info-box {
-      background: #eff6ff;
-      border-left: 4px solid #3b82f6;
+      background: #f0f9ff;
+      border-left: 4px solid var(--primary-color);
       padding: 15px;
       margin-bottom: 25px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 14px;
-      color: #1e40af;
+      color: var(--secondary-color);
     }
 
     .info-box strong {
       display: block;
       margin-bottom: 5px;
+      font-weight: 600;
     }
 
     .warning-box {
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
+      background: #fffbeb;
+      border-left: 4px solid var(--warning-color);
       padding: 15px;
       margin-bottom: 25px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 14px;
       color: #92400e;
+    }
+
+    .warning-box strong {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
     }
 
     .button-group {
@@ -94,30 +103,31 @@
     .btn {
       padding: 12px 24px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s;
     }
 
     .btn-primary {
-      background: #3b82f6;
+      background: var(--primary-color);
       color: white;
     }
 
     .btn-primary:hover {
-      background: #2563eb;
+      background: var(--secondary-color);
     }
 
     .btn-primary:disabled {
-      background: #9ca3af;
+      background: var(--text-light);
       cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .btn-secondary {
-      background: #e5e7eb;
-      color: #374151;
+      background: var(--border-color);
+      color: var(--text-dark);
     }
 
     .btn-secondary:hover {
@@ -126,21 +136,22 @@
 
     .message {
       padding: 12px 15px;
-      border-radius: 6px;
+      border-radius: 8px;
       margin-bottom: 20px;
       font-size: 14px;
+      border-left: 4px solid;
     }
 
     .message.success {
-      background: #d1fae5;
-      border: 1px solid #a7f3d0;
+      background: #ecfdf5;
+      border-left-color: var(--success-color);
       color: #065f46;
     }
 
     .message.error {
-      background: #fee2e2;
-      border: 1px solid #fecaca;
-      color: #7f1d1d;
+      background: #fef2f2;
+      border-left-color: var(--error-color);
+      color: #991b1b;
     }
 
     .loading {
@@ -150,8 +161,8 @@
     }
 
     .spinner {
-      border: 3px solid #e5e7eb;
-      border-top: 3px solid #3b82f6;
+      border: 3px solid var(--border-color);
+      border-top: 3px solid var(--primary-color);
       border-radius: 50%;
       width: 30px;
       height: 30px;
@@ -166,7 +177,7 @@
 
     .loading-text {
       margin-top: 10px;
-      color: #6b7280;
+      color: var(--text-light);
       font-size: 14px;
     }
   </style>
