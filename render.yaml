@@ -10,6 +10,10 @@ services:
         value: production
       - key: SESSION_SECRET
         generateValue: true
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "false"
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
     mounts:
       - path: /mnt/data
         diskName: refapp-data
