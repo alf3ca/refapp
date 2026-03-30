@@ -7,6 +7,7 @@ const multer = require('multer');
 const PDFDocument = require('pdfkit');
 // Use JSON file-based database
 const db = require('./lib/db-json');
+const { scrapeCentreCircleFixtures, convertToGameFormat } = require('./lib/centreCircleScraper');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -497,6 +498,141 @@ app.get('/games/new', requireLogin, (req, res) => {
     matchRoles: MATCH_ROLES,
     matchStatuses: MATCH_STATUSES
   });
+});
+
+app.get('/import-centre-circle', requireLogin, (req, res) => {
+  const fixtures = req.query.fixtures ? JSON.parse(decodeURIComponent(req.query.fixtures)) : null;
+  return res.render('import-centre-circle', { fixtures });
+});
+
+app.post('/api/import-centre-circle', requireLogin, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    console.log('🔐 Scraping Centre Circle fixtures for:', email);
+    const centreCircleFixtures = await scrapeCentreCircleFixtures(email, password);
+    
+    if (!centreCircleFixtures || centreCircleFixtures.length === 0) {
+      return res.status(400).json({ error: 'No fixtures found in Centre Circle' });
+    }
+
+    // Convert to app format
+    const convertedFixtures = centreCircleFixtures.map(fixture => 
+      convertToGameFormat(fixture, req.session.userId)
+    );
+
+    // Store in session temporarily for selection
+    req.session.centreCircleFixtures = convertedFixtures;
+
+    console.log(`✅ Retrieved and converted ${convertedFixtures.length} fixtures`);
+    return res.json({ 
+      success: true, 
+      fixtures: convertedFixtures,
+      message: `Found ${convertedFixtures.length} fixtures` 
+    });
+  } catch (error) {
+    console.error('❌ Error scraping Centre Circle:', error);
+    return res.status(500).json({ 
+      error: error.message || 'Failed to scrape Centre Circle fixtures' 
+    });
+  }
+});
+
+app.post('/api/import-centre-circle/confirm', requireLogin, (req, res) => {
+  try {
+    const { selectedIndexes } = req.body;
+    
+    if (!selectedIndexes || !Array.isArray(selectedIndexes) || selectedIndexes.length === 0) {
+      return res.status(400).json({ error: 'No fixtures selected for import' });
+    }
+
+    const fixtures = req.session.centreCircleFixtures;
+    if (!fixtures || fixtures.length === 0) {
+      return res.status(400).json({ error: 'No fixtures found in session. Please scrape again.' });
+    }
+
+    // Validate indexes
+    const validIndexes = selectedIndexes.filter(idx => idx >= 0 && idx < fixtures.length);
+    if (validIndexes.length === 0) {
+      return res.status(400).json({ error: 'Invalid fixture indexes' });
+    }
+
+    // Get selected fixtures
+    const selectedFixtures = validIndexes.map(idx => fixtures[idx]);
+
+    // Load game data
+    const gameData = loadUserGameData(req.session.userId);
+
+    // Add fixtures to games
+    selectedFixtures.forEach(fixture => {
+      // Add teams if new
+      if (!gameData.teams.some(team => team.toLowerCase() === fixture.homeTeam.toLowerCase())) {
+        gameData.teams.push(fixture.homeTeam);
+      }
+      if (!gameData.teams.some(team => team.toLowerCase() === fixture.awayTeam.toLowerCase())) {
+        gameData.teams.push(fixture.awayTeam);
+      }
+
+      // Add venue if new
+      if (!gameData.venues.some(venue => venue.toLowerCase() === fixture.venue.toLowerCase())) {
+        gameData.venues.push(fixture.venue);
+      }
+
+      // Add league if new
+      if (!gameData.leagues.some(league => league.toLowerCase() === fixture.league.toLowerCase())) {
+        gameData.leagues.push(fixture.league);
+      }
+
+      // Create game
+      const newGame = {
+        id: getNextId(gameData.games),
+        matchDate: fixture.matchDate,
+        kickoffTime: fixture.kickoffTime,
+        league: fixture.league,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        venue: fixture.venue,
+        ageGroup: fixture.ageGroup,
+        role: fixture.role,
+        status: fixture.status,
+        travelTimeMinutes: fixture.travelTimeMinutes,
+        travelDistanceMiles: fixture.travelDistanceMiles,
+        matchFee: fixture.matchFee,
+        feePaid: fixture.feePaid,
+        reportSubmitted: fixture.reportSubmitted,
+        personalNotes: fixture.personalNotes,
+        incidentNotes: fixture.incidentNotes,
+        attachments: [],
+        createdBy: req.session.userId,
+        createdAt: new Date().toISOString(),
+        importedFrom: 'Centre Circle'
+      };
+
+      gameData.games.push(newGame);
+    });
+
+    // Save updated game data
+    saveUserGameData(req.session.userId, gameData);
+
+    // Clear session fixtures
+    delete req.session.centreCircleFixtures;
+
+    console.log(`✅ Imported ${validIndexes.length} fixtures from Centre Circle`);
+    return res.json({ 
+      success: true, 
+      importedCount: validIndexes.length,
+      message: `Successfully imported ${validIndexes.length} fixture(s)`
+    });
+  } catch (error) {
+    console.error('❌ Error importing Centre Circle fixtures:', error);
+    return res.status(500).json({ 
+      error: error.message || 'Failed to import fixtures' 
+    });
+  }
 });
 
 app.get('/profile', requireLogin, (req, res) => {

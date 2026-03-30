@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import from Centre Circle - Referee Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .import-section {
+            margin-bottom: 30px;
+        }
+        
+        .fixtures-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .fixtures-table thead {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .fixtures-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #0056b3;
+        }
+        
+        .fixtures-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .fixtures-table tbody tr:hover {
+            background-color: #e8f0f7;
+        }
+        
+        .fixtures-table tr.selected {
+            background-color: #d1f2eb;
+        }
+        
+        .fixture-checkbox {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+        
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+        
+        .fixtures-count {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .button-group button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/dashboard" class="nav-brand">⚽ Referee Portal</a>
+            <div class="nav-menu">
+                <a href="/logout" class="nav-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <%- include('partials/side-menu') %>
+
+        <div class="profile-container">
+            <h1>📥 Import from Centre Circle</h1>
+
+            <div class="profile-card">
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+
+                <% if (!fixtures || fixtures.length === 0) { %>
+                <div class="import-section">
+                    <h3>Step 1: Login to Centre Circle</h3>
+                    <p>Enter your Centre Circle credentials to fetch your fixtures.</p>
+                    
+                    <form id="centreCircleLoginForm" class="profile-form">
+                        <div class="form-group">
+                            <label for="email">Centre Circle Email</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                required 
+                                placeholder="your.email@example.com"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Centre Circle Password</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                required 
+                                placeholder="••••••••"
+                            >
+                        </div>
+
+                        <div class="loading" id="loadingSpinner">
+                            <div class="spinner"></div>
+                            <p>Logging into Centre Circle and fetching fixtures...</p>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="submitBtn">Fetch Fixtures</button>
+                    </form>
+                </div>
+                <% } else { %>
+                <div class="import-section">
+                    <h3>Step 2: Select Fixtures to Import</h3>
+                    <p>Select the fixtures you want to import into your dashboard.</p>
+                    
+                    <div class="fixtures-count">
+                        <strong id="selectedCount">0</strong> of <%= fixtures.length %> fixtures selected
+                    </div>
+
+                    <table class="fixtures-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input 
+                                        type="checkbox" 
+                                        id="selectAll" 
+                                        class="fixture-checkbox"
+                                    >
+                                </th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Home Team</th>
+                                <th>Away Team</th>
+                                <th>Venue</th>
+                                <th>League</th>
+                                <th>Age Group</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fixturesBody">
+                            <% fixtures.forEach((fixture, index) => { %>
+                            <tr class="fixture-row" data-index="<%= index %>">
+                                <td>
+                                    <input 
+                                        type="checkbox" 
+                                        class="fixture-checkbox fixture-item" 
+                                        value="<%= index %>"
+                                        checked
+                                    >
+                                </td>
+                                <td><%= fixture.matchDate || 'TBD' %></td>
+                                <td><%= fixture.kickoffTime || 'TBD' %></td>
+                                <td><%= fixture.homeTeam || 'TBD' %></td>
+                                <td><%= fixture.awayTeam || 'TBD' %></td>
+                                <td><%= fixture.venue || 'TBD' %></td>
+                                <td><%= fixture.league || 'TBD' %></td>
+                                <td><%= fixture.ageGroup || 'TBD' %></td>
+                                <td><%= fixture.role || 'Referee' %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" id="backBtn">← Back</button>
+                        <button type="button" class="btn-primary" id="importBtn">Import Selected Fixtures</button>
+                    </div>
+
+                    <form id="importForm" style="display: none;">
+                        <input type="hidden" id="selectedFixtures" name="selectedFixtures" value="">
+                    </form>
+                </div>
+                <% } %>
+
+                <div style="margin-top: 30px;">
+                    <a href="/games/new" class="btn-secondary" style="padding: 10px 20px;">← Back to Add Game</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('centreCircleLoginForm');
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const fixtureCheckboxes = document.querySelectorAll('.fixture-item');
+            const importBtn = document.getElementById('importBtn');
+            const backBtn = document.getElementById('backBtn');
+            const selectedCountEl = document.getElementById('selectedCount');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Handle login form submission
+            if (loginForm) {
+                loginForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value.trim();
+
+                    if (!email || !password) {
+                        showError('Email and password are required');
+                        return;
+                    }
+
+                    loadingSpinner.style.display = 'block';
+                    submitBtn.disabled = true;
+                    errorMessage.style.display = 'none';
+
+                    try {
+                        const response = await fetch('/api/import-centre-circle', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            showError(data.error || 'Failed to fetch fixtures');
+                            loadingSpinner.style.display = 'none';
+                            submitBtn.disabled = false;
+                            return;
+                        }
+
+                        // Redirect to show fixtures
+                        window.location.href = '/import-centre-circle?fixtures=' + encodeURIComponent(JSON.stringify(data.fixtures));
+                    } catch (err) {
+                        showError('Error fetching fixtures: ' + err.message);
+                        loadingSpinner.style.display = 'none';
+                        submitBtn.disabled = false;
+                    }
+                });
+            }
+
+            // Handle select all checkbox
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    fixtureCheckboxes.forEach(checkbox => {
+                        checkbox.checked = this.checked;
+                        updateRowHighlight(checkbox);
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            // Handle individual fixture checkboxes
+            fixtureCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedCount();
+                    updateRowHighlight(this);
+                });
+            });
+
+            // Handle import button
+            if (importBtn) {
+                importBtn.addEventListener('click', async function() {
+                    const selectedIndexes = [];
+                    fixtureCheckboxes.forEach(checkbox => {
+                        if (checkbox.checked) {
+                            selectedIndexes.push(parseInt(checkbox.value));
+                        }
+                    });
+
+                    if (selectedIndexes.length === 0) {
+                        showError('Please select at least one fixture to import');
+                        return;
+                    }
+
+                    importBtn.disabled = true;
+                    const originalText = importBtn.textContent;
+                    importBtn.textContent = 'Importing...';
+
+                    try {
+                        const response = await fetch('/api/import-centre-circle/confirm', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ selectedIndexes })
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            showError(data.error || 'Failed to import fixtures');
+                            importBtn.disabled = false;
+                            importBtn.textContent = originalText;
+                            return;
+                        }
+
+                        showSuccess(`Successfully imported ${data.importedCount} fixture(s)`);
+                        setTimeout(() => {
+                            window.location.href = '/games/new';
+                        }, 1500);
+                    } catch (err) {
+                        showError('Error importing fixtures: ' + err.message);
+                        importBtn.disabled = false;
+                        importBtn.textContent = originalText;
+                    }
+                });
+            }
+
+            // Handle back button
+            if (backBtn) {
+                backBtn.addEventListener('click', function() {
+                    window.location.href = '/import-centre-circle';
+                });
+            }
+
+            function updateSelectedCount() {
+                const checked = document.querySelectorAll('.fixture-item:checked').length;
+                selectedCountEl.textContent = checked;
+            }
+
+            function updateRowHighlight(checkbox) {
+                const row = checkbox.closest('tr');
+                if (checkbox.checked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            }
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000);
+            }
+
+            function showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+            }
+
+            // Initialize selected count
+            updateSelectedCount();
+        });
+    </script>
+</body>
+</html>
