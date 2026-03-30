@@ -3,8 +3,8 @@ services:
     name: refapp
     env: node
     plan: free
-    buildCommand: npm install && npm run download-chromium
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node ensure-chromium.js && npm start
     envVars:
       - key: NODE_ENV
         value: production
