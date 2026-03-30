@@ -15,6 +15,8 @@ services:
         value: "true"
       - key: PUPPETEER_EXECUTABLE_PATH
         value: /usr/bin/chromium-browser
+      - key: PUPPETEER_CACHE_DIR
+        value: /tmp/puppeteer-cache
     mounts:
       - path: /mnt/data
         diskName: refapp-data
