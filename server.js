@@ -5,7 +5,6 @@ const fs = require('fs');
 const session = require('express-session');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
-const { scrapeCentreCircleFixtures, convertToGameFormat } = require('./lib/centreCircleScraper');
 // Use JSON file-based database
 const db = require('./lib/db-json');
 
@@ -1118,78 +1117,6 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
-});
-
-app.get('/import-centre-circle', requireLogin, (req, res) => {
-  return res.render('import-centre-circle', { message: null, importedCount: 0 });
-});
-
-app.post('/api/import-centre-circle', requireLogin, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    console.log('🔄 Starting Centre Circle import for user:', req.session.userId);
-    const fixtures = await scrapeCentreCircleFixtures(email, password);
-
-    if (!fixtures || fixtures.length === 0) {
-      return res.status(400).json({ error: 'No fixtures found. Check your credentials or availability.' });
-    }
-
-    // Convert fixtures to game format and add to user's games
-    const gameData = loadUserGameData(req.session.userId);
-    let importedCount = 0;
-
-    fixtures.forEach((fixture) => {
-      const game = convertToGameFormat(fixture, req.session.userId);
-      
-      // Check if game already exists (by date, time, teams)
-      const exists = gameData.games.some(
-        (g) =>
-          g.matchDate === game.matchDate &&
-          g.kickoffTime === game.kickoffTime &&
-          g.homeTeam.toLowerCase() === game.homeTeam.toLowerCase() &&
-          g.awayTeam.toLowerCase() === game.awayTeam.toLowerCase()
-      );
-
-      if (!exists) {
-        game.id = getNextId(gameData.games);
-        game.createdBy = req.session.userId;
-        game.createdAt = new Date().toISOString();
-        gameData.games.push(game);
-        importedCount++;
-
-        // Update team/venue/league lists
-        if (!gameData.teams.some((t) => t.toLowerCase() === game.homeTeam.toLowerCase())) {
-          gameData.teams.push(game.homeTeam);
-        }
-        if (!gameData.teams.some((t) => t.toLowerCase() === game.awayTeam.toLowerCase())) {
-          gameData.teams.push(game.awayTeam);
-        }
-        if (!gameData.venues.some((v) => v.toLowerCase() === game.venue.toLowerCase())) {
-          gameData.venues.push(game.venue);
-        }
-        if (!gameData.leagues.some((l) => l.toLowerCase() === game.league.toLowerCase())) {
-          gameData.leagues.push(game.league);
-        }
-      }
-    });
-
-    saveUserGameData(req.session.userId, gameData);
-    console.log(`✅ Import complete: ${importedCount} new games added`);
-
-    return res.json({
-      success: true,
-      message: `Successfully imported ${importedCount} new games from Centre Circle!`,
-      importedCount
-    });
-  } catch (error) {
-    console.error('❌ Import error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to import from Centre Circle' });
-  }
 });
 
 // Debug endpoint to test manual session saving
