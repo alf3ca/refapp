@@ -3,17 +3,13 @@ services:
     name: refapp
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run download-chromium
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
         generateValue: true
-      - key: PUPPETEER_CACHE_DIR
-        value: /tmp/puppeteer
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "false"
     mounts:
       - path: /mnt/data
         diskName: refapp-data
