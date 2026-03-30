@@ -2,48 +2,59 @@
 /**
  * Ensure Chromium is installed before app startup
  */
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const puppeteer = require('puppeteer');
 
-console.log('🔍 Checking if Chromium is available...');
+console.log('🔍 [STARTUP] Checking if Chromium is available...');
+console.log('📌 NODE_ENV:', process.env.NODE_ENV);
 
-try {
-  // Try to require puppeteer and check if it can find chromium
-  const puppeteer = require('puppeteer');
-  
-  console.log('✅ Puppeteer is installed');
-  console.log('📌 Cache directory:', process.env.PUPPETEER_CACHE_DIR || 'default');
-  
-  // Try launching to see if chromium exists
-  puppeteer.launch({ headless: true })
-    .then(browser => {
-      console.log('✅ Chromium is available and working!');
-      browser.close();
-      process.exit(0);
-    })
-    .catch(err => {
-      console.log('⚠️  Chromium not found, attempting to install...');
-      console.log('Error was:', err.message);
-      
-      try {
-        console.log('📥 Running: npx @puppeteer/browsers install chrome');
-        execSync('npx @puppeteer/browsers install chrome', { stdio: 'inherit' });
-        console.log('✅ Chromium installed successfully');
-        process.exit(0);
-      } catch (installErr) {
-        console.error('❌ Failed to install Chromium:', installErr.message);
-        console.log('⚠️  App will start but Centre Circle import may not work');
-        process.exit(0); // Don't block app startup
-      }
+// Attempt to download chromium if needed
+async function ensureChromium() {
+  try {
+    console.log('⏳ Testing Puppeteer/Chromium availability...');
+    
+    // This will trigger a download if chromium doesn't exist
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-} catch (err) {
-  console.error('❌ Error:', err.message);
-  process.exit(1);
+    
+    console.log('✅ [STARTUP] Chromium is available and working!');
+    await browser.close();
+    return true;
+    
+  } catch (error) {
+    console.error('❌ [STARTUP] Error checking Chromium:', error.message);
+    
+    // Try to use browserFetcher to install
+    console.log('📥 [STARTUP] Attempting to download Chromium via BrowserFetcher...');
+    try {
+      const browserFetcher = puppeteer.createBrowserFetcher();
+      const revisionInfo = await browserFetcher.download('146');
+      console.log('✅ [STARTUP] Chromium downloaded to:', revisionInfo.executablePath);
+      return true;
+    } catch (fetchErr) {
+      console.error('❌ [STARTUP] BrowserFetcher failed:', fetchErr.message);
+      console.log('⚠️  [STARTUP] Proceeding without Chromium. Users may see errors during import.');
+      return false;
+    }
+  }
 }
 
-// Timeout after 60 seconds
+// Run the check
+ensureChromium()
+  .then(() => {
+    console.log('✅ [STARTUP] Chromium check complete, starting app...');
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('❌ [STARTUP] Fatal error:', err.message);
+    console.log('⚠️  [STARTUP] Proceeding anyway...');
+    process.exit(0);
+  });
+
+// Timeout after 120 seconds
 setTimeout(() => {
-  console.log('⏱️ Chromium check timed out, proceeding with app startup...');
+  console.log('⏱️  [STARTUP] Chromium check timed out (120s), proceeding with app startup...');
   process.exit(0);
-}, 60000);
+}, 120000);
+

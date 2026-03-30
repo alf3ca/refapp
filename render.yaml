@@ -5,11 +5,16 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: node ensure-chromium.js && npm start
+    maxStartupTime: 120
     envVars:
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
         generateValue: true
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=512
+      - key: PUPPETEER_CACHE_DIR
+        value: /tmp/puppeteer
     mounts:
       - path: /mnt/data
         diskName: refapp-data
