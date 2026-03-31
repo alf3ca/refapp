@@ -538,11 +538,21 @@ app.post('/api/import-centre-circle', requireLogin, async (req, res) => {
     console.error('❌ Error scraping Centre Circle:', error);
     const errorMsg = error.message || 'Failed to scrape Centre Circle fixtures';
     
+    // Check if it's a puppeteer not available issue
+    if (errorMsg.includes('not installed') || errorMsg.includes('Puppeteer is not')) {
+      return res.status(503).json({ 
+        error: 'Centre Circle import feature is not available in this environment.',
+        details: 'Browser automation (puppeteer) is not installed. This feature requires additional system dependencies.',
+        solution: 'For local development, run: npm install puppeteer'
+      });
+    }
+    
     // Check if it's a browser availability issue
     if (errorMsg.includes('Could not find') || errorMsg.includes('Not installed') || errorMsg.includes('not available')) {
       return res.status(503).json({ 
-        error: 'Browser automation service is not available in this environment. This feature requires Chromium/Chrome to be installed. Please contact your administrator.',
-        details: errorMsg
+        error: 'Browser automation service is not available in this environment.',
+        details: errorMsg,
+        solution: 'This feature requires Chromium/Chrome to be installed. Please contact your administrator.'
       });
     }
     
