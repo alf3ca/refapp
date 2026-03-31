@@ -536,9 +536,17 @@ app.post('/api/import-centre-circle', requireLogin, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error scraping Centre Circle:', error);
-    return res.status(500).json({ 
-      error: error.message || 'Failed to scrape Centre Circle fixtures' 
-    });
+    const errorMsg = error.message || 'Failed to scrape Centre Circle fixtures';
+    
+    // Check if it's a browser availability issue
+    if (errorMsg.includes('Could not find') || errorMsg.includes('Not installed') || errorMsg.includes('not available')) {
+      return res.status(503).json({ 
+        error: 'Browser automation service is not available in this environment. This feature requires Chromium/Chrome to be installed. Please contact your administrator.',
+        details: errorMsg
+      });
+    }
+    
+    return res.status(500).json({ error: errorMsg });
   }
 });
 
@@ -645,8 +653,6 @@ app.get('/profile', requireLogin, (req, res) => {
 
   return res.render('profile', { user });
 });
-
-
 
 app.post('/api/update-profile', requireLogin, (req, res) => {
   const { name, experience } = req.body;
